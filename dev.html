@@ -82,7 +82,7 @@
         // Choose your key type:
         // - anon key: Safe for users, limited admin functions
         // - service_role key: Full admin access (get from Supabase Dashboard → Settings → API)
-        const USE_SERVICE_ROLE_KEY = true; // Set to true to enable admin functions
+        const USE_SERVICE_ROLE_KEY = false; // Set to false for regular user access
         
         const anonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdrbWNsemxncmNtcW9jZm94a3VpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU2MDYzNzEsImV4cCI6MjA3MTE4MjM3MX0.ovOR0iMGao5qvrAThrx8KucLyTctiRkVbNJvYdPEyk0';
         
@@ -257,7 +257,7 @@
                 
                 if (user) {
                     // User is authenticated - try database first, then localStorage
-                    localStorageKey = `marriageMeetings_weekData_${user.id}`;
+                    localStorageKey = `marriageMeetings_weekData_${user.id}_${targetWeekKey}`;
                     console.log('🔄 [DEV] Loading with authenticated user key:', localStorageKey);
                     console.log('🔄 [DEV] Loading for week:', targetWeekKey);
                     console.log('🔄 [DEV] Current user:', user.email);
@@ -274,15 +274,15 @@
                         if (error) {
                             console.log('⚠️ [DEV] Database load error:', error);
                         } else if (data && data.length > 0) {
-                            console.log('✅ [DEV] Loaded week data from database:', data[0].data);
+                            console.log('✅ [DEV] Loaded week data from database:', data[0].data_content);
                             // Also save to localStorage for faster future access
                             try {
-                                localStorage.setItem(localStorageKey, JSON.stringify(data[0].data));
+                                localStorage.setItem(localStorageKey, JSON.stringify(data[0].data_content));
                                 console.log('💾 [DEV] Data also saved to localStorage for faster access');
                             } catch (localError) {
                                 console.error('❌ [DEV] Error saving to localStorage:', localError);
                             }
-                            return data[0].data;
+                            return data[0].data_content;
                         }
                     } catch (error) {
                         console.log('⚠️ [DEV] Database load error:', error);
@@ -317,7 +317,7 @@
                 
                 if (user) {
                     // User is authenticated - save to both database and localStorage
-                    localStorageKey = `marriageMeetings_weekData_${user.id}`;
+                    localStorageKey = `marriageMeetings_weekData_${user.id}_${weekKey}`;
                     console.log('💾 [DEV] Saving with authenticated user key:', localStorageKey);
                     console.log('💾 [DEV] Saving for week:', weekKey);
                     console.log('💾 [DEV] Current user:', user.email);
@@ -343,7 +343,7 @@
                             .upsert({
                                 week_key: weekKey,
                                 user_id: user.id,
-                                data: dataToSave
+                                data_content: dataToSave
                             }, {
                                 onConflict: 'week_key,user_id'
                             });
@@ -814,7 +814,7 @@
                                 <button
                                     onClick={() => {
                                         const weekKey = formatWeekKey(currentDate);
-                                        const localStorageKey = `dev_weekData_${weekKey}`;
+                                        const localStorageKey = user ? `marriageMeetings_weekData_${user.id}_${weekKey}` : `dev_weekData_${weekKey}`;
                                         const savedData = localStorage.getItem(localStorageKey);
                                         console.log('🔍 [DEV] Current localStorage data:', savedData);
                                         console.log('🔍 [DEV] Current weekData state:', weekData[weekKey]);

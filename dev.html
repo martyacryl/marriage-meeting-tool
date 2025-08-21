@@ -672,7 +672,7 @@
             const addListItem = (listType) => {
                 setWeekData(prevData => {
                     const currentItems = prevData[listType] || [];
-                    const newItem = { id: Date.now(), text: '', completed: false };
+                    const newItem = { id: Date.now(), text: 'New item...', completed: false };
                     return {
                         ...prevData,
                         [listType]: [...currentItems, newItem]

@@ -7,7 +7,8 @@
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <!-- Neon Database Client -->
+    <script src="https://unpkg.com/@neondatabase/serverless@0.9.0/dist/index.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -76,17 +77,16 @@
     <script type="text/babel">
         const { useState, useEffect, useCallback, useRef, useMemo } = React;
 
-        // Initialize Supabase - DEVELOPMENT ENVIRONMENT with Auth
-        const supabaseUrl = 'https://gkmclzlgrcmqocfoxkui.supabase.co';
+        // Initialize Neon Database - DEVELOPMENT ENVIRONMENT
+        const neonConnectionString = 'postgresql://neondb_owner:npg_JVaULlB0w8mo@ep-soft-rice-adn6s9vn-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require';
         
-        // Choose your key type:
-        // - anon key: Safe for users, limited admin functions
-        // - service_role key: Full admin access (get from Supabase Dashboard → Settings → API)
-        const USE_SERVICE_ROLE_KEY = false; // Set to false for regular user access
+        // Create Neon client
+        // Neon client ready
+
         
-        const anonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdrbWNsemxncmNtcW9jZm94a3VpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU2MDYzNzEsImV4cCI6MjA3MTE4MjM3MX0.ovOR0iMGao5qvrAThrx8KucLyTctiRkVbNJvYdPEyk0';
+        const neon = window.neon;
         
-        // Add your service role key here (get from Supabase Dashboard → Settings → API)
+
         const serviceRoleKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdrbWNsemxncmNtcW9jZm94a3VpIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1NTYwNjM3MSwiZXhwIjoyMDcxMTgyMzcxfQ.Iz1__lQGZmxAiiMlildaypRObXBUzGu72DznKsGxTWk';
         
         const supabaseKey = USE_SERVICE_ROLE_KEY ? serviceRoleKey : anonKey;
@@ -94,6 +94,19 @@
         
         // DEVELOPMENT TABLE NAME
         const TABLE_NAME = 'marriage_meetings_dev';
+        
+        // Test Neon connection
+        const testNeonConnection = async () => {
+            try {
+                const sql = 'SELECT * FROM marriage_meetings_dev LIMIT 1';
+                const result = await neon(neonConnectionString, sql);
+                console.log('✅ Neon connection successful:', result);
+                return true;
+            } catch (error) {
+                console.error('❌ Neon connection failed:', error);
+                return false;
+            }
+        };
         
         // Auth state
         let currentUser = null;
@@ -797,6 +810,12 @@
                             
                             {/* Development Save Button */}
                             <div className="mt-4 flex justify-center gap-4">
+                                <button
+                                    onClick={testNeonConnection}
+                                    className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition-colors"
+                                >
+                                    🧪 Test Neon
+                                </button>
                                 <button
                                     onClick={() => {
                                         const weekKey = formatWeekKey(currentDate);

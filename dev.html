@@ -164,6 +164,13 @@
                     }
 
                     console.log('✅ [NEON] Query successful:', result);
+                    console.log('🔍 [NEON] Result type:', typeof result);
+                    console.log('🔍 [NEON] Result structure:', {
+                        isArray: Array.isArray(result),
+                        hasRows: result && result.rows,
+                        length: Array.isArray(result) ? result.length : 'N/A',
+                        keys: result && typeof result === 'object' ? Object.keys(result) : 'N/A'
+                    });
                     return result;
                 } catch (error) {
                     console.error('❌ [NEON] Query failed:', error);
@@ -181,16 +188,33 @@
                     `;
                     
                     const result = await this.executeQuery(query, [weekKey, userId]);
+                    console.log('🔍 [NEON] Raw query result:', result);
                     
-                    if (result && result.length > 0) {
-                        const data = typeof result[0].data_content === 'string' 
-                            ? JSON.parse(result[0].data_content) 
-                            : result[0].data_content;
-                        
-                        console.log('✅ [NEON] Week data loaded successfully');
-                        return data;
+                    // Handle different result structures from Neon client
+                    let data;
+                    if (result && Array.isArray(result) && result.length > 0) {
+                        // Standard array result
+                        data = result[0];
+                    } else if (result && result.rows && Array.isArray(result.rows) && result.rows.length > 0) {
+                        // Result with rows property
+                        data = result.rows[0];
+                    } else if (result && typeof result === 'object' && result.data_content) {
+                        // Direct object result
+                        data = result;
                     } else {
                         console.log('ℹ️ [NEON] No existing data found, returning empty structure');
+                        return this.getEmptyWeekStructure();
+                    }
+                    
+                    if (data && data.data_content) {
+                        const parsedData = typeof data.data_content === 'string' 
+                            ? JSON.parse(data.data_content) 
+                            : data.data_content;
+                        
+                        console.log('✅ [NEON] Week data loaded successfully:', parsedData);
+                        return parsedData;
+                    } else {
+                        console.log('ℹ️ [NEON] No data_content found in result, returning empty structure');
                         return this.getEmptyWeekStructure();
                     }
                 } catch (error) {

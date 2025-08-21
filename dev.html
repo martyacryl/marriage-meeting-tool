@@ -153,6 +153,91 @@
             return `${monday.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${sunday.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
         };
 
+        // Authentication Components
+        const SignInScreen = ({ onSignIn, onAdminSignIn }) => {
+            const [email, setEmail] = useState('');
+            const [password, setPassword] = useState('');
+            const [loading, setLoading] = useState(false);
+            const [error, setError] = useState('');
+
+            const handleSignIn = async (e) => {
+                e.preventDefault();
+                setLoading(true);
+                setError('');
+
+                try {
+                    const { data, error } = await supabase.auth.signInWithPassword({
+                        email,
+                        password
+                    });
+
+                    if (error) throw error;
+
+                    // Check if user is admin (you can set this in user metadata)
+                    const isUserAdmin = data.user?.user_metadata?.is_admin === true;
+                    
+                    if (isUserAdmin) {
+                        onAdminSignIn(data.user);
+                    } else {
+                        onSignIn(data.user);
+                    }
+                } catch (error) {
+                    setError(error.message);
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            return (
+                <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-100 to-green-50">
+                    <div className="modern-card p-8 w-full max-w-md">
+                        <h1 className="text-3xl font-bold text-center mb-8 text-primary">
+                            Marriage Meeting Tool - Development
+                        </h1>
+                        <p className="text-center text-gray-600 mb-6">Sign in to access your development marriage meeting schedule</p>
+                        
+                        {error && (
+                            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+                                {error}
+                            </div>
+                        )}
+                        
+                        <form onSubmit={handleSignIn} className="space-y-4">
+                            <input 
+                                type="email" 
+                                placeholder="Email" 
+                                className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                required
+                            />
+                            <input 
+                                type="password" 
+                                placeholder="Password" 
+                                className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                required
+                            />
+                            <button 
+                                type="submit"
+                                disabled={loading}
+                                className="w-full bg-primary text-white py-3 rounded-lg hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                {loading ? 'Signing In...' : 'Sign In'}
+                            </button>
+                        </form>
+                        
+                        <div className="mt-6 text-center">
+                            <p className="text-sm text-gray-500">
+                                Contact your administrator for access
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
         // Main App Component
         const App = () => {
             const [currentDate, setCurrentDate] = useState(new Date());
@@ -540,22 +625,16 @@
             // Not authenticated
             if (!user) {
                 return (
-                    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-100 to-green-50">
-                        <div className="bg-white p-8 rounded-xl shadow-lg max-w-md w-full">
-                            <h1 className="text-2xl font-bold text-center text-gray-800 mb-6">
-                                Marriage Meeting Tool
-                            </h1>
-                            <p className="text-gray-600 text-center mb-6">
-                                Please sign in to access your marriage planning tools.
-                            </p>
-                            <button
-                                onClick={() => supabase.auth.signInWithOAuth({ provider: 'google' })}
-                                className="w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-3 px-4 rounded-lg transition-colors"
-                            >
-                                Sign In with Google
-                            </button>
-                        </div>
-                    </div>
+                    <SignInScreen 
+                        onSignIn={(userData) => {
+                            setUser(userData);
+                            setIsAdmin(false);
+                        }}
+                        onAdminSignIn={(userData) => {
+                            setUser(userData);
+                            setIsAdmin(true);
+                        }}
+                    />
                 );
             }
 
@@ -613,6 +692,47 @@
                                     </button>
                                 </div>
                             )}
+                        </div>
+
+                        {/* User Info and Sign Out */}
+                        <div className="flex justify-between items-center mb-6 p-4 bg-white rounded-lg shadow-sm">
+                            <div className="text-left">
+                                {user && (
+                                    <div className="text-sm text-gray-600">
+                                        Signed in as: {user.email}
+                                    </div>
+                                )}
+                            </div>
+                            
+                            <div className="flex items-center gap-4">
+                                {/* Sign Out Button */}
+                                <button
+                                    onClick={async () => {
+                                        try {
+                                            await supabase.auth.signOut();
+                                            setUser(null);
+                                            setIsAdmin(false);
+                                        } catch (error) {
+                                            console.error('Sign out error:', error);
+                                        }
+                                    }}
+                                    className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-colors"
+                                >
+                                    Sign Out
+                                </button>
+                                
+                                <div className="text-right text-sm">
+                                    <div className="text-green-600">
+                                        <div className="w-2 h-2 rounded-full bg-green-500 mx-auto mb-1"></div>
+                                        Synced
+                                    </div>
+                                    {lastSaved && (
+                                        <div className="text-gray-500">
+                                            Last saved: {lastSaved.toLocaleTimeString()}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
                         </div>
 
                         {/* Admin Panel */}

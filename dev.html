@@ -707,16 +707,14 @@
             };
 
             const removeListItem = (listType, id) => {
-                const weekKey = formatWeekKey(currentDate);
-                const currentItems = currentWeekData[listType] || [];
-                const updatedItems = currentItems.filter(item => item.id !== id);
-                const newData = {
-                    ...currentWeekData,
-                    [listType]: updatedItems
-                };
-                
-                setWeekData(prev => ({ ...prev, [weekKey]: newData }));
-                saveWeekData(weekKey, newData);
+                setWeekData(prevData => {
+                    const currentItems = prevData[listType] || [];
+                    const updatedItems = currentItems.filter(item => item.id !== id);
+                    return {
+                        ...prevData,
+                        [listType]: updatedItems
+                    };
+                });
             };
 
             const navigateWeek = (direction) => {
@@ -729,7 +727,7 @@
                 console.log(`🔄 Navigating to new week: ${newWeekKey}, loading data...`);
                 
                 // Load data for the specific week
-                loadWeekData(newWeekKey).then(savedData => {
+                useWeekData(newWeekKey, getCurrentUserId()).then(savedData => {
                     if (savedData) {
                         console.log(`✅ Loaded data for week ${newWeekKey}:`, savedData);
                         setWeekData(prev => ({ ...prev, [newWeekKey]: savedData }));
@@ -1199,7 +1197,8 @@
 
             const handleSaveEdit = () => {
                 if (editValue.trim()) {
-                    onUpdate(listType, editingIndex, editValue.trim());
+                    const itemId = items[editingIndex]?.id || editingIndex;
+                    onUpdate(listType, itemId, editValue.trim());
                     setEditingIndex(null);
                     setEditValue('');
                 }
@@ -1250,7 +1249,10 @@
                                         <>
                                             <div className="flex items-center gap-2 flex-1">
                                                 <button
-                                                    onClick={() => onToggle(listType, index)}
+                                                    onClick={() => {
+                                                        const itemId = item.id || index;
+                                                        onToggle(listType, itemId);
+                                                    }}
                                                     className={`w-4 h-4 rounded border-2 flex items-center justify-center ${
                                                         isCompleted 
                                                             ? 'bg-green-500 border-green-500 text-white' 
@@ -1271,7 +1273,7 @@
                                                     Edit
                                                 </button>
                                                 <button
-                                                    onClick={() => onRemove(listType, index)}
+                                                    onClick={() => onRemove(listType, item.id || index)}
                                                     className="text-red-500 hover:text-red-700 text-xs"
                                                 >
                                                     ×

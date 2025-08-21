@@ -7,8 +7,31 @@
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- Neon Database Client - Properly Bundled -->
+    <script src="dist/neon-client.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
+        // Initialize Neon client globally
+        let neonClient = null;
+        let isNeonAvailable = false;
+        
+        // Try to initialize Neon client
+        try {
+            if (window.neonClient) {
+                neonClient = window.neonClient;
+                isNeonAvailable = true;
+                console.log('✅ [NEON] Client loaded successfully from window.neonClient');
+            } else if (window.neon) {
+                neonClient = window.neon;
+                isNeonAvailable = true;
+                console.log('✅ [NEON] Client loaded successfully from window.neon');
+            } else {
+                console.log('⚠️ [NEON] No Neon client found in window object');
+            }
+        } catch (error) {
+            console.error('❌ [NEON] Error initializing client:', error);
+        }
+
         tailwind.config = {
             theme: {
                 extend: {
@@ -75,8 +98,33 @@
     <script type="text/babel">
         const { useState, useEffect, useCallback, useRef, useMemo } = React;
 
-        // Mock Neon Database Client for Development
+        // Real Neon Database Client with Fallback
         const neon = async (connectionString, sql) => {
+            console.log('🚀 [NEON] Executing query:', sql);
+            
+            // Try real Neon client first
+            if (isNeonAvailable && neonClient) {
+                try {
+                    console.log('✅ [NEON] Using real Neon client');
+                    const sqlClient = neonClient(connectionString);
+                    
+                    // Execute the query
+                    const result = await sqlClient(sql);
+                    console.log('✅ [NEON] Query successful:', result);
+                    return result;
+                } catch (error) {
+                    console.error('❌ [NEON] Real client failed, falling back to mock:', error);
+                    isNeonAvailable = false; // Disable real client for future calls
+                }
+            }
+            
+            // Fallback to mock system
+            console.log('🔄 [NEON] Using mock fallback system');
+            return await mockNeon(connectionString, sql);
+        };
+
+        // Mock Neon Database Client for Fallback
+        const mockNeon = async (connectionString, sql) => {
             console.log('🧪 [MOCK] Neon query:', sql);
             
             // Parse the SQL to determine operation type
@@ -178,14 +226,27 @@
             return [];
         };
 
-        // Test the mock connection
+        // Test the Neon connection
         const testNeonConnection = async () => {
             try {
-                console.log('🧪 [MOCK] Testing mock Neon connection...');
-                const result = await neon('mock-connection', 'SELECT 1');
-                console.log('✅ [MOCK] Mock Neon connection test successful:', result);
+                console.log('🧪 [NEON] Testing Neon connection...');
+                console.log('🔍 [NEON] Client status:', {
+                    isNeonAvailable,
+                    neonClient: !!neonClient,
+                    windowNeon: !!window.neon,
+                    windowNeon: !!window.Neon
+                });
+                
+                const result = await neon('test-connection', 'SELECT 1 as test');
+                console.log('✅ [NEON] Connection test successful:', result);
+                
+                if (isNeonAvailable) {
+                    console.log('🎉 [NEON] Real Neon client is working!');
+                } else {
+                    console.log('⚠️ [NEON] Using mock fallback system');
+                }
             } catch (error) {
-                console.error('❌ [MOCK] Mock Neon connection test failed:', error);
+                console.error('❌ [NEON] Connection test failed:', error);
             }
         };
 

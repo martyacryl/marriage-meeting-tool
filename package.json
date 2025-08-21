@@ -1,0 +1,57 @@
+{
+  "name": "marriage-meeting-tool",
+  "version": "1.0.0",
+  "description": "A comprehensive web application for couples to plan their weekly activities, manage shared goals, and strengthen their relationship through intentional planning and communication.",
+  "main": "index.html",
+  "scripts": {
+    "dev": "node dev-server.js",
+    "start": "node dev-server.js",
+    "serve": "node dev-server.js",
+    "build": "echo 'No build step required for static HTML app'",
+    "test": "echo 'No tests specified yet'",
+    "lint": "echo 'No linting configured yet'",
+    "format": "echo 'No formatting configured yet'",
+    "deploy": "echo 'Deploy to your hosting service'",
+    "setup-dev": "echo 'Run setup_dev_database.sql in your Supabase SQL Editor'",
+    "help": "echo 'Available commands: dev, start, serve, build, test, lint, format, deploy, setup-dev'"
+  },
+  "keywords": [
+    "marriage",
+    "planning",
+    "couples",
+    "relationship",
+    "weekly-meeting",
+    "react",
+    "supabase",
+    "tailwindcss"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yourusername/marriage-meeting-tool.git"
+  },
+  "bugs": {
+    "url": "https://github.com/yourusername/marriage-meeting-tool/issues"
+  },
+  "homepage": "https://github.com/yourusername/marriage-meeting-tool#readme",
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "devDependencies": {},
+  "dependencies": {},
+  "browserslist": [
+    "> 1%",
+    "last 2 versions",
+    "not dead"
+  ],
+  "files": [
+    "index.html",
+    "dev.html",
+    "config.js",
+    "setup_dev_database.sql",
+    "DEV_README.md",
+    "README.md",
+    "dev-server.js"
+  ]
+}

@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Marriage Meeting Tool - Development</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="config.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#047857',
+                        secondary: '#10b981',
+                        accent: '#34d399',
+                        dev: '#dc2626', // Red color for dev environment
+                        warning: '#f59e0b'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .section-divider {
+            background: linear-gradient(90deg, transparent, #e5e7eb, transparent);
+            height: 1px;
+            margin: 1.5rem 0;
+        }
+        .section-card {
+            background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            border-radius: 16px;
+        }
+        .section-header {
+            background: linear-gradient(135deg, #94a3b8 0%, #059669 100%);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 700;
+        }
+        .modern-card {
+            background: linear-gradient(135deg, #ffffff 0%, #f1f5f9 100%);
+            border: 1px solid #cbd5e1;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            border-radius: 20px;
+            transition: all 0.3s ease;
+        }
+        .modern-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        .dev-banner {
+            background: linear-gradient(90deg, #dc2626, #ef4444, #dc2626);
+            background-size: 200% 100%;
+            animation: gradient 2s ease infinite;
+        }
+        @keyframes gradient {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        .dev-card {
+            border: 2px solid #dc2626;
+            background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-slate-100 to-red-50 min-h-screen">
+
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useCallback, useRef, useMemo } = React;
+
+        // Development Environment Configuration
+        const currentConfig = window.appConfig.getConfig();
+        const isDev = currentConfig.environment === 'development';
+        
+        // Initialize Supabase with current config
+        const supabase = window.supabase.createClient(
+            currentConfig.supabaseUrl, 
+            currentConfig.serviceRoleKey
+        );
+        
+        // Development table name
+        const TABLE_NAME = currentConfig.tableName;
+        
+        // Debug logging function
+        const devLog = (...args) => {
+            if (currentConfig.enableDebugLogging) {
+                console.log(`[DEV] ${new Date().toISOString()}`, ...args);
+            }
+        };
+
+        // Mock data for development
+        const mockData = {
+            schedule: {
+                monday: ['Morning coffee together', 'Evening walk'],
+                tuesday: ['Date night planning', 'Budget review'],
+                wednesday: ['Prayer time', 'Movie night'],
+                thursday: ['Grocery shopping', 'Cooking together'],
+                friday: ['Weekend planning', 'Game night'],
+                saturday: ['Hiking adventure', 'Dinner out'],
+                sunday: ['Church together', 'Family time']
+            },
+            todoList: ['Plan vacation', 'Fix garage door', 'Call insurance'],
+            prayerList: ['Family health', 'Career guidance', 'Relationship strength'],
+            goals: ['Save for house', 'Learn new hobby', 'Travel more'],
+            groceryList: ['Milk', 'Bread', 'Eggs', 'Fruits'],
+            unconfessedSin: ['Impatience', 'Pride'],
+            weeklyWinddown: ['Reading together', 'Massage', 'Deep conversation']
+        };
+
+        // Auth state
+        let currentUser = null;
+        let isAdmin = false;
+
+        // Icons as SVG components
+        const ChevronLeftIcon = () => (
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+        );
+
+        const ChevronRightIcon = () => (
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+        );
+
+        const PlusIcon = () => (
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+        );
+
+        const TrashIcon = () => (
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+        );
+
+        const AdminIcon = () => (
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+            </svg>
+        );
+
+        const DevIcon = () => (
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+        );
+
+        // Development Banner Component
+        const DevBanner = () => (
+            <div className="dev-banner text-white text-center py-2 font-bold text-sm">
+                🚧 DEVELOPMENT MODE - {currentConfig.environment.toUpperCase()} 🚧
+            </div>
+        );
+
+        // Development Tools Component
+        const DevTools = ({ onLoadMockData, onClearData, onToggleDebug }) => {
+            const [showDevTools, setShowDevTools] = useState(false);
+            
+            return (
+                <div className="fixed bottom-4 right-4 z-50">
+                    <button
+                        onClick={() => setShowDevTools(!showDevTools)}
+                        className="bg-red-600 hover:bg-red-700 text-white p-3 rounded-full shadow-lg transition-all duration-200"
+                        title="Development Tools"
+                    >
+                        <DevIcon />
+                    </button>
+                    
+                    {showDevTools && (
+                        <div className="absolute bottom-16 right-0 bg-white border-2 border-red-600 rounded-lg shadow-xl p-4 min-w-64">
+                            <h3 className="font-bold text-red-600 mb-3 flex items-center gap-2">
+                                <DevIcon />
+                                Development Tools
+                            </h3>
+                            
+                            <div className="space-y-2">
+                                <button
+                                    onClick={onLoadMockData}
+                                    className="w-full bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded text-sm"
+                                >
+                                    Load Mock Data
+                                </button>
+                                
+                                <button
+                                    onClick={onClearData}
+                                    className="w-full bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-2 rounded text-sm"
+                                >
+                                    Clear All Data
+                                </button>
+                                
+                                <button
+                                    onClick={onToggleDebug}
+                                    className="w-full bg-green-500 hover:bg-green-600 text-white px-3 py-2 rounded text-sm"
+                                >
+                                    Toggle Debug Logging
+                                </button>
+                                
+                                <div className="text-xs text-gray-600 mt-3 p-2 bg-gray-100 rounded">
+                                    <div>Environment: {currentConfig.environment}</div>
+                                    <div>Table: {currentConfig.tableName}</div>
+                                    <div>Debug: {currentConfig.enableDebugLogging ? 'ON' : 'OFF'}</div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        // Main App Component
+        const App = () => {
+            const [currentWeek, setCurrentWeek] = useState(new Date());
+            const [schedule, setSchedule] = useState({});
+            const [todoList, setTodoList] = useState([]);
+            const [prayerList, setPrayerList] = useState([]);
+            const [goals, setGoals] = useState([]);
+            const [groceryList, setGroceryList] = useState([]);
+            const [unconfessedSin, setUnconfessedSin] = useState([]);
+            const [weeklyWinddown, setWeeklyWinddown] = useState([]);
+            const [showAdmin, setShowAdmin] = useState(false);
+            const [isLoading, setIsLoading] = useState(false);
+            const [error, setError] = useState(null);
+            const [debugMode, setDebugMode] = useState(currentConfig.enableDebugLogging);
+
+            // Load mock data for development
+            const loadMockData = useCallback(() => {
+                if (isDev && currentConfig.enableMockData) {
+                    devLog('Loading mock data...');
+                    setSchedule(mockData.schedule);
+                    setTodoList(mockData.todoList);
+                    setPrayerList(mockData.prayerList);
+                    setGoals(mockData.goals);
+                    setGroceryList(mockData.groceryList);
+                    setUnconfessedSin(mockData.unconfessedSin);
+                    setWeeklyWinddown(mockData.weeklyWinddown);
+                    
+                    // Save to localStorage for development
+                    localStorage.setItem('dev_schedule', JSON.stringify(mockData.schedule));
+                    localStorage.setItem('dev_todoList', JSON.stringify(mockData.todoList));
+                    localStorage.setItem('dev_prayerList', JSON.stringify(mockData.prayerList));
+                    localStorage.setItem('dev_goals', JSON.stringify(mockData.goals));
+                    localStorage.setItem('dev_groceryList', JSON.stringify(mockData.groceryList));
+                    localStorage.setItem('dev_unconfessedSin', JSON.stringify(mockData.unconfessedSin));
+                    localStorage.setItem('dev_weeklyWinddown', JSON.stringify(mockData.weeklyWinddown));
+                    
+                    devLog('Mock data loaded successfully');
+                }
+            }, [isDev]);
+
+            // Clear all data
+            const clearAllData = useCallback(() => {
+                if (isDev) {
+                    devLog('Clearing all data...');
+                    setSchedule({});
+                    setTodoList([]);
+                    setPrayerList([]);
+                    setGoals([]);
+                    setGroceryList([]);
+                    setUnconfessedSin([]);
+                    setWeeklyWinddown([]);
+                    
+                    // Clear localStorage
+                    localStorage.removeItem('dev_schedule');
+                    localStorage.removeItem('dev_todoList');
+                    localStorage.removeItem('dev_prayerList');
+                    localStorage.removeItem('dev_goals');
+                    localStorage.removeItem('dev_groceryList');
+                    localStorage.removeItem('dev_unconfessedSin');
+                    localStorage.removeItem('dev_weeklyWinddown');
+                    
+                    devLog('All data cleared');
+                }
+            }, [isDev]);
+
+            // Toggle debug logging
+            const toggleDebug = useCallback(() => {
+                setDebugMode(!debugMode);
+                currentConfig.enableDebugLogging = !debugMode;
+                devLog('Debug logging toggled:', !debugMode);
+            }, [debugMode]);
+
+            // Load data from localStorage (development mode)
+            useEffect(() => {
+                if (isDev) {
+                    devLog('Loading data from localStorage...');
+                    const savedSchedule = localStorage.getItem('dev_schedule');
+                    const savedTodoList = localStorage.getItem('dev_todoList');
+                    const savedPrayerList = localStorage.getItem('dev_prayerList');
+                    const savedGoals = localStorage.getItem('dev_goals');
+                    const savedGroceryList = localStorage.getItem('dev_groceryList');
+                    const savedUnconfessedSin = localStorage.getItem('dev_unconfessedSin');
+                    const savedWeeklyWinddown = localStorage.getItem('dev_weeklyWinddown');
+
+                    if (savedSchedule) setSchedule(JSON.parse(savedSchedule));
+                    if (savedTodoList) setTodoList(JSON.parse(savedTodoList));
+                    if (savedPrayerList) setPrayerList(JSON.parse(savedPrayerList));
+                    if (savedGoals) setGoals(JSON.parse(savedGoals));
+                    if (savedGroceryList) setGroceryList(JSON.parse(savedGroceryList));
+                    if (savedUnconfessedSin) setUnconfessedSin(JSON.parse(savedUnconfessedSin));
+                    if (savedWeeklyWinddown) setWeeklyWinddown(JSON.parse(savedWeeklyWinddown));
+                    
+                    devLog('Data loaded from localStorage');
+                }
+            }, [isDev]);
+
+            // Save data to localStorage (development mode)
+            useEffect(() => {
+                if (isDev) {
+                    devLog('Saving data to localStorage...');
+                    localStorage.setItem('dev_schedule', JSON.stringify(schedule));
+                    localStorage.setItem('dev_todoList', JSON.stringify(todoList));
+                    localStorage.setItem('dev_prayerList', JSON.stringify(prayerList));
+                    localStorage.setItem('dev_goals', JSON.stringify(goals));
+                    localStorage.setItem('dev_groceryList', JSON.stringify(groceryList));
+                    localStorage.setItem('dev_unconfessedSin', JSON.stringify(unconfessedSin));
+                    localStorage.setItem('dev_weeklyWinddown', JSON.stringify(weeklyWinddown));
+                }
+            }, [schedule, todoList, prayerList, goals, groceryList, unconfessedSin, weeklyWinddown, isDev]);
+
+            // Week navigation
+            const goToPreviousWeek = () => {
+                const newWeek = new Date(currentWeek);
+                newWeek.setDate(newWeek.getDate() - 7);
+                setCurrentWeek(newWeek);
+                devLog('Navigated to previous week:', newWeek);
+            };
+
+            const goToNextWeek = () => {
+                const newWeek = new Date(currentWeek);
+                newWeek.setDate(newWeek.getDate() + 7);
+                setCurrentWeek(newWeek);
+                devLog('Navigated to next week:', newWeek);
+            };
+
+            // Get week dates
+            const getWeekDates = (date) => {
+                const start = new Date(date);
+                start.setDate(start.getDate() - start.getDay());
+                
+                const dates = [];
+                for (let i = 0; i < 7; i++) {
+                    const day = new Date(start);
+                    day.setDate(start.getDate() + i);
+                    dates.push(day);
+                }
+                return dates;
+            };
+
+            const weekDates = getWeekDates(currentWeek);
+
+            // Add item to list
+            const addToList = (listName, item) => {
+                if (!item.trim()) return;
+                
+                devLog(`Adding item to ${listName}:`, item);
+                
+                switch (listName) {
+                    case 'todo':
+                        setTodoList(prev => [...prev, item.trim()]);
+                        break;
+                    case 'prayer':
+                        setPrayerList(prev => [...prev, item.trim()]);
+                        break;
+                    case 'goals':
+                        setGoals(prev => [...prev, item.trim()]);
+                        break;
+                    case 'grocery':
+                        setGroceryList(prev => [...prev, item.trim()]);
+                        break;
+                    case 'unconfessedSin':
+                        setUnconfessedSin(prev => [...prev, item.trim()]);
+                        break;
+                    case 'weeklyWinddown':
+                        setWeeklyWinddown(prev => [...prev, item.trim()]);
+                        break;
+                }
+            };
+
+            // Remove item from list
+            const removeFromList = (listName, index) => {
+                devLog(`Removing item from ${listName} at index:`, index);
+                
+                switch (listName) {
+                    case 'todo':
+                        setTodoList(prev => prev.filter((_, i) => i !== index));
+                        break;
+                    case 'prayer':
+                        setPrayerList(prev => prev.filter((_, i) => i !== index));
+                        break;
+                    case 'goals':
+                        setGoals(prev => prev.filter((_, i) => i !== index));
+                        break;
+                    case 'grocery':
+                        setGroceryList(prev => prev.filter((_, i) => i !== index));
+                        break;
+                    case 'unconfessedSin':
+                        setUnconfessedSin(prev => prev.filter((_, i) => i !== index));
+                        break;
+                    case 'weeklyWinddown':
+                        setWeeklyWinddown(prev => prev.filter((_, i) => i !== index));
+                        break;
+                }
+            };
+
+            // Add schedule item
+            const addScheduleItem = (day, item) => {
+                if (!item.trim()) return;
+                
+                devLog(`Adding schedule item for ${day}:`, item);
+                setSchedule(prev => ({
+                    ...prev,
+                    [day]: [...(prev[day] || []), item.trim()]
+                }));
+            };
+
+            // Remove schedule item
+            const removeScheduleItem = (day, index) => {
+                devLog(`Removing schedule item from ${day} at index:`, index);
+                setSchedule(prev => ({
+                    ...prev,
+                    [day]: prev[day].filter((_, i) => i !== index)
+                }));
+            };
+
+            // List component
+            const ListSection = ({ title, items, onAdd, onRemove, placeholder, className = "" }) => (
+                <div className={`modern-card p-6 ${className}`}>
+                    <h3 className="text-lg font-semibold mb-4 text-gray-800">{title}</h3>
+                    <div className="space-y-2 mb-4">
+                        {items.map((item, index) => (
+                            <div key={index} className="flex items-center justify-between bg-white p-3 rounded-lg border">
+                                <span className="text-gray-700">{item}</span>
+                                <button
+                                    onClick={() => onRemove(index)}
+                                    className="text-red-500 hover:text-red-700 transition-colors"
+                                >
+                                    <TrashIcon />
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+                    <div className="flex gap-2">
+                        <input
+                            type="text"
+                            placeholder={placeholder}
+                            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                            onKeyPress={(e) => {
+                                if (e.key === 'Enter') {
+                                    onAdd(e.target.value);
+                                    e.target.value = '';
+                                }
+                            }}
+                        />
+                        <button
+                            onClick={() => {
+                                const input = document.querySelector(`input[placeholder="${placeholder}"]`);
+                                if (input && input.value.trim()) {
+                                    onAdd(input.value);
+                                    input.value = '';
+                                }
+                            }}
+                            className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
+                        >
+                            <PlusIcon />
+                        </button>
+                    </div>
+                </div>
+            );
+
+            // Schedule component
+            const ScheduleSection = () => (
+                <div className="modern-card p-6">
+                    <div className="flex items-center justify-between mb-6">
+                        <h3 className="text-xl font-semibold text-gray-800">Weekly Schedule</h3>
+                        <div className="flex items-center gap-2">
+                            <button
+                                onClick={goToPreviousWeek}
+                                className="p-2 text-gray-600 hover:text-gray-800 transition-colors"
+                            >
+                                <ChevronLeftIcon />
+                            </button>
+                            <span className="text-sm text-gray-600">
+                                {weekDates[0].toLocaleDateString()} - {weekDates[6].toLocaleDateString()}
+                            </span>
+                            <button
+                                onClick={goToNextWeek}
+                                className="p-2 text-gray-600 hover:text-gray-800 transition-colors"
+                            >
+                                <ChevronRightIcon />
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-7 gap-4">
+                        {weekDates.map((date, index) => {
+                            const dayName = date.toLocaleDateString('en-US', { weekday: 'long' });
+                            const dayKey = dayName.toLowerCase();
+                            const dayItems = schedule[dayKey] || [];
+                            
+                            return (
+                                <div key={index} className="bg-white p-4 rounded-lg border">
+                                    <h4 className="font-semibold text-gray-800 mb-3 text-center">{dayName}</h4>
+                                    <div className="space-y-2 mb-3">
+                                        {dayItems.map((item, itemIndex) => (
+                                            <div key={itemIndex} className="flex items-center justify-between bg-gray-50 p-2 rounded text-sm">
+                                                <span className="text-gray-700">{item}</span>
+                                                <button
+                                                    onClick={() => removeScheduleItem(dayKey, itemIndex)}
+                                                    className="text-red-500 hover:text-red-700 text-xs"
+                                                >
+                                                    ×
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <div className="flex gap-1">
+                                        <input
+                                            type="text"
+                                            placeholder="Add activity..."
+                                            className="flex-1 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-green-500"
+                                            onKeyPress={(e) => {
+                                                if (e.key === 'Enter') {
+                                                    addScheduleItem(dayKey, e.target.value);
+                                                    e.target.value = '';
+                                                }
+                                            }}
+                                        />
+                                        <button
+                                            onClick={() => {
+                                                const input = e.target.previousElementSibling;
+                                                if (input && input.value.trim()) {
+                                                    addScheduleItem(dayKey, input.value);
+                                                    input.value = '';
+                                                }
+                                            }}
+                                            className="px-2 py-1 bg-green-500 text-white rounded text-xs hover:bg-green-600 transition-colors"
+                                        >
+                                            <PlusIcon />
+                                        </button>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            );
+
+            // Admin panel component
+            const AdminPanel = () => (
+                <div className="dev-card p-6">
+                    <h3 className="text-lg font-semibold mb-4 text-red-600 flex items-center gap-2">
+                        <AdminIcon />
+                        Development Admin Panel
+                    </h3>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="bg-white p-4 rounded-lg border">
+                            <h4 className="font-semibold mb-2">Data Statistics</h4>
+                            <div className="text-sm space-y-1">
+                                <div>Schedule Items: {Object.values(schedule).flat().length}</div>
+                                <div>Todo Items: {todoList.length}</div>
+                                <div>Prayer Items: {prayerList.length}</div>
+                                <div>Goals: {goals.length}</div>
+                                <div>Grocery Items: {groceryList.length}</div>
+                                <div>Unconfessed Sins: {unconfessedSin.length}</div>
+                                <div>Winddown Activities: {weeklyWinddown.length}</div>
+                            </div>
+                        </div>
+                        
+                        <div className="bg-white p-4 rounded-lg border">
+                            <h4 className="font-semibold mb-2">Environment Info</h4>
+                            <div className="text-sm space-y-1">
+                                <div>Environment: {currentConfig.environment}</div>
+                                <div>Table: {currentConfig.tableName}</div>
+                                <div>Debug Logging: {debugMode ? 'Enabled' : 'Disabled'}</div>
+                                <div>Mock Data: {currentConfig.enableMockData ? 'Available' : 'Disabled'}</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                        <h4 className="font-semibold text-yellow-800 mb-2">Development Notes</h4>
+                        <ul className="text-sm text-yellow-700 space-y-1">
+                            <li>• This is a development version with enhanced debugging</li>
+                            <li>• Data is stored in localStorage for development</li>
+                            <li>• Mock data can be loaded for testing</li>
+                            <li>• Use the dev tools button (bottom right) for additional features</li>
+                        </ul>
+                    </div>
+                </div>
+            );
+
+            return (
+                <div className="min-h-screen">
+                    <DevBanner />
+                    
+                    <div className="container mx-auto px-4 py-8">
+                        <div className="text-center mb-8">
+                            <h1 className="text-4xl font-bold text-gray-800 mb-2">
+                                Marriage Meeting Tool
+                            </h1>
+                            <p className="text-gray-600 text-lg">
+                                Development Version - Plan your week together
+                            </p>
+                            <div className="mt-4">
+                                <button
+                                    onClick={() => setShowAdmin(!showAdmin)}
+                                    className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center gap-2 mx-auto"
+                                >
+                                    <AdminIcon />
+                                    {showAdmin ? 'Hide' : 'Show'} Dev Admin
+                                </button>
+                            </div>
+                        </div>
+
+                        {showAdmin && <AdminPanel />}
+
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+                            <ScheduleSection />
+                            
+                            <div className="space-y-6">
+                                <ListSection
+                                    title="To-Do List"
+                                    items={todoList}
+                                    onAdd={(item) => addToList('todo', item)}
+                                    onRemove={(index) => removeFromList('todo', index)}
+                                    placeholder="Add task..."
+                                />
+                                
+                                <ListSection
+                                    title="Prayer List"
+                                    items={prayerList}
+                                    onAdd={(item) => addToList('prayer', item)}
+                                    onRemove={(index) => removeFromList('prayer', index)}
+                                    placeholder="Add prayer request..."
+                                />
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+                            <ListSection
+                                title="Goals & Dreams"
+                                items={goals}
+                                onAdd={(item) => addToList('goals', item)}
+                                onRemove={(index) => removeFromList('goals', index)}
+                                placeholder="Add goal..."
+                            />
+                            
+                            <ListSection
+                                title="Grocery List"
+                                items={groceryList}
+                                onAdd={(item) => addToList('grocery', item)}
+                                onRemove={(index) => removeFromList('grocery', index)}
+                                placeholder="Add item..."
+                            />
+                        </div>
+
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                            <ListSection
+                                title="Unconfessed Sin"
+                                items={unconfessedSin}
+                                onAdd={(item) => addToList('unconfessedSin', item)}
+                                onRemove={(index) => removeFromList('unconfessedSin', index)}
+                                placeholder="Add item..."
+                                className="dev-card"
+                            />
+                            
+                            <ListSection
+                                title="Weekly Winddown"
+                                items={weeklyWinddown}
+                                onAdd={(item) => addToList('weeklyWinddown', item)}
+                                onRemove={(index) => removeFromList('weeklyWinddown', index)}
+                                placeholder="Add activity..."
+                            />
+                        </div>
+                    </div>
+
+                    <DevTools
+                        onLoadMockData={loadMockData}
+                        onClearData={clearAllData}
+                        onToggleDebug={toggleDebug}
+                    />
+                </div>
+            );
+        };
+
+        // Render the app
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+</body>
+</html>

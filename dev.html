@@ -359,14 +359,42 @@
                 }));
             };
 
-            // Load week data from localStorage (development mode - handles both auth and no-auth)
+            // Load week data from database and localStorage (development mode - handles both auth and no-auth)
             const loadWeekData = async () => {
                 let localStorageKey;
                 
                 if (user) {
-                    // User is authenticated - use production-style key
+                    // User is authenticated - try database first, then localStorage
                     localStorageKey = `marriageMeetings_weekData_${user.id}`;
                     console.log('🔄 [DEV] Loading with authenticated user key:', localStorageKey);
+                    
+                    try {
+                        // Try to load from database first
+                        const { data, error } = await supabase
+                            .from(TABLE_NAME)
+                            .select('*')
+                            .eq('week_key', formatWeekKey(currentDate))
+                            .eq('user_id', user.id);
+
+                        if (error) {
+                            console.log('⚠️ [DEV] Database load error:', error);
+                        } else if (data && data.length > 0) {
+                            console.log('✅ [DEV] Loaded week data from database:', data[0].data);
+                            // Also save to localStorage for faster future access
+                            try {
+                                localStorage.setItem(localStorageKey, JSON.stringify(data[0].data));
+                                console.log('💾 [DEV] Data also saved to localStorage for faster access');
+                            } catch (localError) {
+                                console.error('❌ [DEV] Error saving to localStorage:', localError);
+                            }
+                            return data[0].data;
+                        }
+                    } catch (error) {
+                        console.log('⚠️ [DEV] Database load error:', error);
+                    }
+                    
+                    // Fallback to localStorage if database fails
+                    console.log('🔄 [DEV] Trying localStorage fallback...');
                 } else {
                     // No user - use development key
                     localStorageKey = `dev_weekData_${formatWeekKey(currentDate)}`;
@@ -384,44 +412,97 @@
                     console.error('❌ [DEV] Error loading from localStorage:', error);
                 }
                 
-                console.log('🆕 [DEV] No localStorage data found, will create new data');
+                console.log('🆕 [DEV] No data found, will create new data');
                 return null;
             };
 
-            // Save week data to localStorage (development mode - handles both auth and no-auth)
+            // Save week data to database and localStorage (development mode - handles both auth and no-auth)
             const saveWeekData = async (weekKey, data) => {
                 let localStorageKey;
                 
                 if (user) {
-                    // User is authenticated - use production-style key
+                    // User is authenticated - save to both database and localStorage
                     localStorageKey = `marriageMeetings_weekData_${user.id}`;
                     console.log('💾 [DEV] Saving with authenticated user key:', localStorageKey);
+                    
+                    try {
+                        // Ensure data is properly structured before saving
+                        const dataToSave = {
+                            schedule: data.schedule || {},
+                            todos: data.todos || [],
+                            prayers: data.prayers || [],
+                            goals: data.goals || [],
+                            grocery: data.grocery || [],
+                            unconfessedSin: data.unconfessedSin || [],
+                            weeklyWinddown: data.weeklyWinddown || []
+                        };
+                        
+                        // Save to database first
+                        const { error } = await supabase
+                            .from(TABLE_NAME)
+                            .upsert({
+                                week_key: weekKey,
+                                user_id: user.id,
+                                data: dataToSave
+                            }, {
+                                onConflict: 'week_key,user_id'
+                            });
+
+                        if (error) {
+                            console.log('⚠️ [DEV] Database save error:', error);
+                            console.log('💾 [DEV] Data saved to localStorage as backup');
+                        } else {
+                            console.log('✅ [DEV] Week data saved to database successfully');
+                        }
+                        
+                        // Also save to localStorage for faster access
+                        localStorage.setItem(localStorageKey, JSON.stringify(dataToSave));
+                        console.log('💾 [DEV] Week data also saved to localStorage:', dataToSave);
+                        setLastSaved(new Date());
+                        return true;
+                        
+                    } catch (error) {
+                        console.error('❌ [DEV] Database save error:', error);
+                        console.log('💾 [DEV] Falling back to localStorage only');
+                        
+                        // Fallback to localStorage only
+                        try {
+                            localStorage.setItem(localStorageKey, JSON.stringify(dataToSave));
+                            console.log('💾 [DEV] Week data saved to localStorage (fallback):', dataToSave);
+                            setLastSaved(new Date());
+                            return true;
+                        } catch (localError) {
+                            console.error('❌ [DEV] localStorage fallback also failed:', localError);
+                            return false;
+                        }
+                    }
                 } else {
-                    // No user - use development key
+                    // No user - save to localStorage only
                     localStorageKey = `dev_weekData_${weekKey}`;
                     console.log('💾 [DEV] Saving with development key (no auth):', localStorageKey);
-                }
-                
-                try {
-                    // Ensure data is properly structured before saving
-                    const dataToSave = {
-                        schedule: data.schedule || {},
-                        todos: data.todos || [],
-                        prayers: data.prayers || [],
-                        goals: data.goals || [],
-                        grocery: data.grocery || [],
-                        unconfessedSin: data.unconfessedSin || [],
-                        weeklyWinddown: data.weeklyWinddown || []
-                    };
                     
-                    localStorage.setItem(localStorageKey, JSON.stringify(dataToSave));
-                    console.log('💾 [DEV] Week data saved to localStorage:', dataToSave);
-                    console.log('💾 [DEV] localStorage key:', localStorageKey);
-                    setLastSaved(new Date());
-                    return true;
-                } catch (error) {
-                    console.error('❌ [DEV] Error saving to localStorage:', error);
-                    return false;
+                    try {
+                        // Ensure data is properly structured before saving
+                        const dataToSave = {
+                            schedule: data.schedule || {},
+                            todos: data.todos || [],
+                            prayers: data.prayers || [],
+                            goals: data.goals || [],
+                            grocery: data.grocery || [],
+                            unconfessedSin: data.unconfessedSin || [],
+                            weeklyWinddown: data.weeklyWinddown || []
+                        };
+                        
+                        localStorage.setItem(localStorageKey, JSON.stringify(dataToSave));
+                        console.log('💾 [DEV] Week data saved to localStorage:', dataToSave);
+                        console.log('💾 [DEV] localStorage key:', localStorageKey);
+                        setLastSaved(new Date());
+                        return true;
+                    } catch (error) {
+                        console.error('❌ [DEV] Error saving to localStorage:', error);
+                        return false;
+                        }
+                    }
                 }
             };
 

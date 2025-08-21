@@ -698,20 +698,7 @@
                 initializeAuth();
             }, []);
 
-            // Get current week data
-            const currentWeekKey = formatWeekKey(currentDate);
-            const currentWeekData = weekData[currentWeekKey] || {
-                schedule: {
-                    Monday: [''], Tuesday: [''], Wednesday: [''], Thursday: [''],
-                    Friday: [''], Saturday: [''], Sunday: ['']
-                },
-                todos: [],
-                prayers: [],
-                goals: [],
-                grocery: [],
-                unconfessedSin: [],
-                weeklyWinddown: []
-            };
+
 
 
 

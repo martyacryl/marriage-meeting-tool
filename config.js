@@ -11,7 +11,7 @@ const config = {
     enableDebugLogging: true,
     enableMockData: true,
     environment: 'development',
-    netlifyUrl: 'https://your-dev-app.netlify.app' // Replace with your dev Netlify URL
+    netlifyUrl: 'https://your-dev-app.netlify.app' // TODO: Replace with your actual dev Netlify URL
   },
 
   // Production Environment
@@ -23,7 +23,7 @@ const config = {
     enableDebugLogging: false,
     enableMockData: false,
     environment: 'production',
-    netlifyUrl: 'https://your-prod-app.netlify.app' // Replace with your prod Netlify URL
+    netlifyUrl: 'https://your-prod-app.netlify.app' // TODO: Replace with your actual prod Netlify URL
   }
 };
 

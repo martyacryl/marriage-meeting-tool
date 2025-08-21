@@ -108,8 +108,8 @@
                     console.log('✅ [NEON] Using real Neon client');
                     const sqlClient = neonClient(connectionString);
                     
-                    // Execute the query
-                    const result = await sqlClient(sql);
+                    // Execute the query using tagged template literal syntax
+                    const result = await sqlClient`${sql}`;
                     console.log('✅ [NEON] Query successful:', result);
                     return result;
                 } catch (error) {

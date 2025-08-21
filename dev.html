@@ -107,6 +107,8 @@
         const { useState, useEffect, useCallback, useRef, useMemo } = React;
 
         // Neon Database Manager - Structured approach
+        const neonConnectionString = 'postgresql://neondb_owner:npg_JVaULlB0w8mo@ep-soft-rice-adn6s9vn-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require';
+        
         class NeonDatabaseManager {
             constructor() {
                 this.isInitialized = false;
@@ -145,13 +147,12 @@
                     console.log('🚀 [NEON] Executing query:', query);
                     console.log('🚀 [NEON] Parameters:', params);
 
-                    // Use the correct Neon syntax - different clients have different methods
+                    // Use the correct Neon syntax - window.neonClient is a function that takes connection string first
                     let result;
                     
-                    // Try different Neon client methods based on your setup
                     if (typeof this.neonClient === 'function') {
-                        // If neonClient is a function (serverless driver)
-                        result = await this.neonClient(query, params);
+                        // window.neonClient(connectionString, sql, params)
+                        result = await this.neonClient(neonConnectionString, query, params);
                     } else if (this.neonClient.query) {
                         // If neonClient has a query method
                         result = await this.neonClient.query(query, params);
@@ -371,7 +372,6 @@
         }
 
         // Initialize Neon Database - DEVELOPMENT ENVIRONMENT
-        const neonConnectionString = 'postgresql://neondb_owner:npg_JVaULlB0w8mo@ep-soft-rice-adn6s9vn-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require';
         
         // DEVELOPMENT TABLE NAME
         const TABLE_NAME = 'marriage_meetings_dev';

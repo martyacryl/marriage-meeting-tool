@@ -274,15 +274,26 @@
                 }));
             };
 
-            // Load week data from database or localStorage
+            // Load week data from database and localStorage
             const loadWeekData = async () => {
                 if (!user) return null;
                 
-                const weekKey = formatWeekKey(currentDate);
+                // First try to load from localStorage
                 const localStorageKey = `marriageMeetings_weekData_${user.id}`;
-                
                 try {
-                    // Try to load from database first
+                    const localStorageData = localStorage.getItem(localStorageKey);
+                    if (localStorageData) {
+                        const parsedData = JSON.parse(localStorageData);
+                        console.log('Loaded week data from localStorage');
+                        return parsedData;
+                    }
+                } catch (error) {
+                    console.error('Error loading from localStorage:', error);
+                }
+                
+                // If no localStorage data, try database with service role access
+                console.log('No localStorage data, trying database with service role');
+                try {
                     const { data, error } = await supabase
                         .from(TABLE_NAME)
                         .select('*')
@@ -461,6 +472,18 @@
                     clearTimeout(initTimeout);
                 };
             }, [initializeWeekData]);
+
+            // Auto-save data whenever weekData changes (EXACTLY like production)
+            useEffect(() => {
+                if (Object.keys(weekData).length > 0 && user) {
+                    const weekKey = formatWeekKey(currentDate);
+                    const currentData = weekData[weekKey];
+                    if (currentData) {
+                        console.log('🔄 Auto-saving week data...');
+                        saveWeekData(weekKey, currentData);
+                    }
+                }
+            }, [weekData, currentDate, user]);
 
             // Initialize authentication
             useEffect(() => {

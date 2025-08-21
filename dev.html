@@ -274,9 +274,20 @@
                 }));
             };
 
-            // Load week data from localStorage (development mode - no auth required)
+            // Load week data from localStorage (development mode - handles both auth and no-auth)
             const loadWeekData = async () => {
-                const localStorageKey = `dev_weekData_${formatWeekKey(currentDate)}`;
+                let localStorageKey;
+                
+                if (user) {
+                    // User is authenticated - use production-style key
+                    localStorageKey = `marriageMeetings_weekData_${user.id}`;
+                    console.log('🔄 [DEV] Loading with authenticated user key:', localStorageKey);
+                } else {
+                    // No user - use development key
+                    localStorageKey = `dev_weekData_${formatWeekKey(currentDate)}`;
+                    console.log('🔄 [DEV] Loading with development key (no auth):', localStorageKey);
+                }
+                
                 try {
                     const localStorageData = localStorage.getItem(localStorageKey);
                     if (localStorageData) {
@@ -292,9 +303,20 @@
                 return null;
             };
 
-            // Save week data to localStorage (development mode - no auth required)
+            // Save week data to localStorage (development mode - handles both auth and no-auth)
             const saveWeekData = async (weekKey, data) => {
-                const localStorageKey = `dev_weekData_${weekKey}`;
+                let localStorageKey;
+                
+                if (user) {
+                    // User is authenticated - use production-style key
+                    localStorageKey = `marriageMeetings_weekData_${user.id}`;
+                    console.log('💾 [DEV] Saving with authenticated user key:', localStorageKey);
+                } else {
+                    // No user - use development key
+                    localStorageKey = `dev_weekData_${weekKey}`;
+                    console.log('💾 [DEV] Saving with development key (no auth):', localStorageKey);
+                }
+                
                 try {
                     // Ensure data is properly structured before saving
                     const dataToSave = {
@@ -442,6 +464,31 @@
                 
                 return () => clearTimeout(saveTimeout);
             }, [weekData, currentDate, user]);
+
+            // Data migration: When user logs in, migrate dev data to user data
+            useEffect(() => {
+                if (user && Object.keys(weekData).length > 0) {
+                    const weekKey = formatWeekKey(currentDate);
+                    const devKey = `dev_weekData_${weekKey}`;
+                    const userKey = `marriageMeetings_weekData_${user.id}`;
+                    
+                    // Check if we have dev data that needs migration
+                    const devData = localStorage.getItem(devKey);
+                    if (devData) {
+                        console.log('🔄 [DEV] Migrating dev data to user data for week:', weekKey);
+                        try {
+                            const parsedData = JSON.parse(devData);
+                            // Save to user key
+                            localStorage.setItem(userKey, JSON.stringify(parsedData));
+                            // Remove dev key
+                            localStorage.removeItem(devKey);
+                            console.log('✅ [DEV] Data migration completed');
+                        } catch (error) {
+                            console.error('❌ [DEV] Error during data migration:', error);
+                        }
+                    }
+                }
+            }, [user, currentDate]);
 
             // Initialize authentication
             useEffect(() => {

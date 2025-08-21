@@ -119,7 +119,7 @@
                     
                     // Execute the query using the correct API
                     if (params.length > 0) {
-                        // Use parameterized query with sqlClient.query()
+                        // Use parameterized query with sqlClient.query() and proper parameter binding
                         const result = await sqlClient.query(sql, params);
                         console.log('✅ [NEON] Query successful:', result);
                         return result;
@@ -183,7 +183,7 @@
                 return [{
                     id: Date.now(),
                     week_key: '2025-08-18',
-                    user_id: 'dev-user-123',
+                    user_id: getCurrentUserId(),
                     data_content: {
                         schedule: {
                             Monday: [''],
@@ -345,6 +345,21 @@
             return `${monday.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${sunday.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
         };
 
+        // Generate a consistent user ID for development
+        const generateDevUserId = () => {
+            // Use a consistent UUID for development
+            return '9bbd09f4-1680-45e0-b257-b8569770efd2';
+        };
+
+        // Get the current user ID
+        const getCurrentUserId = () => {
+            if (currentUser && currentUser.id) {
+                return currentUser.id;
+            }
+            // Fallback to dev user ID
+            return generateDevUserId();
+        };
+
         // Authentication Components
         const SignInScreen = ({ onSignIn, onAdminSignIn }) => {
             const [email, setEmail] = useState('');
@@ -360,7 +375,7 @@
                 try {
                     // Simple mock authentication for development with Neon
                     const mockUser = {
-                        id: 'dev-user-123',
+                        id: getCurrentUserId(),
                         email: email,
                         user_metadata: { is_admin: false }
                     };
@@ -725,7 +740,7 @@
                         
                         // Get current user session
                         const mockUser = {
-                            id: 'dev-user-123',
+                            id: getCurrentUserId(),
                             email: 'stjohnashlynn@gmail.com',
                             user_metadata: { is_admin: true }
                         };

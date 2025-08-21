@@ -505,9 +505,15 @@
                 }
             }, [currentDate, weekData, user]);
 
-            // Initialize on mount
+            // Initialize week data AFTER authentication is complete
             useEffect(() => {
-                console.log('🚀 Component mounted, initializing week data...');
+                // Only initialize data after authentication is complete
+                if (authLoading) {
+                    console.log('⏳ Waiting for authentication to complete before initializing data...');
+                    return;
+                }
+                
+                console.log('🚀 Authentication complete, initializing week data...');
                 
                 // Add timeout to prevent infinite loading
                 const initTimeout = setTimeout(() => {
@@ -531,11 +537,11 @@
                 return () => {
                     clearTimeout(initTimeout);
                 };
-            }, [initializeWeekData]);
+            }, [authLoading, initializeWeekData]);
 
             // Debounced auto-save to prevent excessive saves and race conditions
             useEffect(() => {
-                if (Object.keys(weekData).length === 0 || !user) return;
+                if (Object.keys(weekData).length === 0) return;
                 
                 const weekKey = formatWeekKey(currentDate);
                 const currentData = weekData[weekKey];
@@ -544,6 +550,7 @@
                 // Debounce the save operation
                 const saveTimeout = setTimeout(() => {
                     console.log('🔄 [DEV] Debounced auto-save triggered for week:', weekKey);
+                    console.log('🔄 [DEV] Current data to save:', currentData);
                     saveWeekData(weekKey, currentData);
                 }, 1000); // Wait 1 second after last change
                 

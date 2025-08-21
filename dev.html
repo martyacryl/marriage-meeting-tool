@@ -95,7 +95,7 @@
         
         // Create real Neon client with proper error handling
         const neon = async (connectionString, sql) => {
-            console.log('🚀 [NEON] Executing query:', sql);
+            console.log('🚀 [NEON] OUR FUNCTION CALLED - Executing query:', sql);
             console.log('🔍 [NEON] Available globals:', Object.keys(window).filter(k => k.includes('neon') || k.includes('Neon')));
             
             try {
@@ -198,6 +198,11 @@
                     neonDatabase: !!window.neonDatabase,
                     serverless: !!window.serverless
                 });
+                
+                // Test if our neon function is working
+                console.log('🧪 [TEST] Testing our neon function...');
+                const testResult = await neon(neonConnectionString, 'SELECT 1 as test');
+                console.log('✅ [TEST] Our neon function result:', testResult);
                 
                 const sql = 'SELECT * FROM marriage_meetings_dev LIMIT 1';
                 const result = await neon(neonConnectionString, sql);

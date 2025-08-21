@@ -9,7 +9,6 @@
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="config.js"></script>
     <script>
         tailwind.config = {
             theme: {
@@ -67,50 +66,35 @@
 </head>
 <body class="bg-gradient-to-br from-slate-100 to-green-50 min-h-screen">
 
+    <!-- Development Banner -->
+    <div class="dev-banner text-white text-center py-2 font-bold text-sm">
+        🚧 DEVELOPMENT MODE - DEVELOPMENT 🚧
+    </div>
+
     <div id="root"></div>
 
     <script type="text/babel">
         const { useState, useEffect, useCallback, useRef, useMemo } = React;
 
-        // Development Environment Configuration
-        const currentConfig = window.appConfig.getConfig();
-        const isDev = currentConfig.environment === 'development';
+        // Initialize Supabase - PRODUCTION ENVIRONMENT with Auth
+        const supabaseUrl = 'https://gkmclzlgrcmqocfoxkui.supabase.co';
         
-        // Initialize Supabase with current config
-        const supabase = window.supabase.createClient(
-            currentConfig.supabaseUrl, 
-            currentConfig.serviceRoleKey
-        );
+        // Choose your key type:
+        // - anon key: Safe for users, limited admin functions
+        // - service_role key: Full admin access (get from Supabase Dashboard → Settings → API)
+        const USE_SERVICE_ROLE_KEY = true; // Set to true to enable admin functions
         
-        // Development table name
-        const TABLE_NAME = currentConfig.tableName;
+        const anonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdrbWNsemxncmNtcW9jZm94a3VpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU2MDYzNzEsImV4cCI6MjA3MTE4MjM3MX0.ovOR0iMGao5qvrAThrx8KucLyTctiRkVbNJvYdPEyk0';
         
-        // Debug logging function
-        const devLog = (...args) => {
-            if (currentConfig.enableDebugLogging) {
-                console.log(`[DEV] ${new Date().toISOString()}`, ...args);
-            }
-        };
-
-        // Mock data for development
-        const mockData = {
-            schedule: {
-                Monday: ['Morning coffee together', 'Evening walk'],
-                Tuesday: ['Date night planning', 'Budget review'],
-                Wednesday: ['Prayer time', 'Movie night'],
-                Thursday: ['Grocery shopping', 'Cooking together'],
-                Friday: ['Weekend planning', 'Game night'],
-                Saturday: ['Hiking adventure', 'Dinner out'],
-                Sunday: ['Church together', 'Family time']
-            },
-            todos: ['Plan vacation', 'Fix garage door', 'Call insurance'],
-            prayers: ['Family health', 'Career guidance', 'Relationship strength'],
-            goals: ['Save for house', 'Learn new hobby', 'Travel more'],
-            grocery: ['Milk', 'Bread', 'Eggs', 'Fruits'],
-            unconfessedSin: ['Impatience', 'Pride'],
-            weeklyWinddown: ['Reading together', 'Massage', 'Deep conversation']
-        };
-
+        // Add your service role key here (get from Supabase Dashboard → Settings → API)
+        const serviceRoleKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdrbWNsemxncmNtcW9jZm94a3VpIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1NTYwNjM3MSwiZXhwIjoyMDcxMTgyMzcxfQ.Iz1__lQGZmxAiiMlildaypRObXBUzGu72DznKsGxTWk';
+        
+        const supabaseKey = USE_SERVICE_ROLE_KEY ? serviceRoleKey : anonKey;
+        const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+        
+        // PRODUCTION TABLE NAME
+        const TABLE_NAME = 'marriage_meetings';
+        
         // Auth state
         let currentUser = null;
         let isAdmin = false;
@@ -146,75 +130,6 @@
             </svg>
         );
 
-        const DevIcon = () => (
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-        );
-
-        // Development Banner Component
-        const DevBanner = () => (
-            <div className="dev-banner text-white text-center py-2 font-bold text-sm">
-                🚧 DEVELOPMENT MODE - {currentConfig.environment.toUpperCase()} 🚧
-            </div>
-        );
-
-        // Development Tools Component
-        const DevTools = ({ onLoadMockData, onClearData, onToggleDebug }) => {
-            const [showDevTools, setShowDevTools] = useState(false);
-            
-            return (
-                <div className="fixed bottom-4 right-4 z-50">
-                    <button
-                        onClick={() => setShowDevTools(!showDevTools)}
-                        className="bg-red-600 hover:bg-red-700 text-white p-3 rounded-full shadow-lg transition-all duration-200"
-                        title="Development Tools"
-                    >
-                        <DevIcon />
-                    </button>
-                    
-                    {showDevTools && (
-                        <div className="absolute bottom-16 right-0 bg-white border-2 border-red-600 rounded-lg shadow-xl p-4 min-w-64">
-                            <h3 className="font-bold text-red-600 mb-3 flex items-center gap-2">
-                                <DevIcon />
-                                Development Tools
-                            </h3>
-                            
-                            <div className="space-y-2">
-                                <button
-                                    onClick={onLoadMockData}
-                                    className="w-full bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded text-sm"
-                                >
-                                    Load Mock Data
-                                </button>
-                                
-                                <button
-                                    onClick={onClearData}
-                                    className="w-full bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-2 rounded text-sm"
-                                >
-                                    Clear All Data
-                                </button>
-                                
-                                <button
-                                    onClick={onToggleDebug}
-                                    className="w-full bg-green-500 hover:bg-green-600 text-white px-3 py-2 rounded text-sm"
-                                >
-                                    Toggle Debug Logging
-                                </button>
-                                
-                                <div className="text-xs text-gray-600 mt-3 p-2 bg-gray-100 rounded">
-                                    <div>Environment: {currentConfig.environment}</div>
-                                    <div>Table: {currentConfig.tableName}</div>
-                                    <div>Debug: {currentConfig.enableDebugLogging ? 'ON' : 'OFF'}</div>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-                </div>
-            );
-        };
-
         // Main App Component
         const App = () => {
             const [currentDate, setCurrentDate] = useState(new Date());
@@ -224,7 +139,7 @@
             const [authLoading, setAuthLoading] = useState(true);
             const [user, setUser] = useState(null);
             const [isAdmin, setIsAdmin] = useState(false);
-            const [debugMode, setDebugMode] = useState(currentConfig.enableDebugLogging);
+            const [showAdmin, setShowAdmin] = useState(false);
 
             // Days of the week
             const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
@@ -277,7 +192,6 @@
                         }
                     }
                 }));
-                devLog(`Updated schedule for ${day}:`, value);
             };
 
             // Add schedule line
@@ -293,7 +207,6 @@
                         }
                     }
                 }));
-                devLog(`Added schedule line for ${day}`);
             };
 
             // Remove schedule line
@@ -309,7 +222,6 @@
                         }
                     }
                 }));
-                devLog(`Removed schedule line for ${day} at index ${index}`);
             };
 
             // Update list item
@@ -322,7 +234,6 @@
                         [listType]: prev[weekKey]?.[listType]?.map((item, i) => i === index ? value : item) || []
                     }
                 }));
-                devLog(`Updated ${listType} item:`, value);
             };
 
             // Add list item
@@ -336,7 +247,6 @@
                         [listType]: [...(prev[weekKey]?.[listType] || []), value.trim()]
                     }
                 }));
-                devLog(`Added ${listType} item:`, value);
             };
 
             // Toggle list item
@@ -349,7 +259,6 @@
                         [listType]: prev[weekKey]?.[listType]?.map((item, i) => i === index ? { ...item, completed: !item.completed } : item) || []
                     }
                 }));
-                devLog(`Toggled ${listType} item at index ${index}`);
             };
 
             // Remove list item
@@ -362,112 +271,224 @@
                         [listType]: prev[weekKey]?.[listType]?.filter((_, i) => i !== index) || []
                     }
                 }));
-                devLog(`Removed ${listType} item at index ${index}`);
             };
 
-            // Load mock data for development
-            const loadMockData = useCallback(() => {
-                if (isDev && currentConfig.enableMockData) {
-                    devLog('Loading mock data...');
-                    const weekKey = formatWeekKey(currentDate);
-                    setWeekData(prev => ({
-                        ...prev,
-                        [weekKey]: mockData
-                    }));
-                    devLog('Mock data loaded successfully');
-                }
-            }, [isDev, currentDate]);
+            // Load week data from database or localStorage
+            const loadWeekData = async () => {
+                if (!user) return null;
+                
+                const weekKey = formatWeekKey(currentDate);
+                const localStorageKey = `marriageMeetings_weekData_${user.id}`;
+                
+                try {
+                    // Try to load from database first
+                    const { data, error } = await supabase
+                        .from(TABLE_NAME)
+                        .select('*')
+                        .eq('week_key', formatWeekKey(currentDate))
+                        .eq('user_id', user.id);
 
-            // Clear all data
-            const clearAllData = useCallback(() => {
-                if (isDev) {
-                    devLog('Clearing all data...');
-                    const weekKey = formatWeekKey(currentDate);
-                    setWeekData(prev => ({
-                        ...prev,
-                        [weekKey]: {
-                            schedule: { Monday: [''], Tuesday: [''], Wednesday: [''], Thursday: [''], Friday: [''], Saturday: [''], Sunday: [''] },
-                            todos: [], prayers: [], goals: [], grocery: [], unconfessedSin: [], weeklyWinddown: []
+                    if (error) {
+                        console.log('Error loading from database:', error);
+                        return null;
+                    }
+
+                    if (data && data.length > 0) {
+                        console.log('Loaded week data from database');
+                        // Also save to localStorage for future use
+                        try {
+                            localStorage.setItem(localStorageKey, JSON.stringify(data[0].data));
+                            console.log('Week data also saved to localStorage');
+                        } catch (localError) {
+                            console.error('Error saving to localStorage:', localError);
                         }
-                    }));
-                    devLog('All data cleared');
+                        return data[0].data;
+                    }
+
+                    return null;
+                } catch (error) {
+                    console.log('Load error from database:', error);
+                    return null;
                 }
-            }, [isDev, currentDate]);
+            };
 
-            // Toggle debug logging
-            const toggleDebug = useCallback(() => {
-                setDebugMode(!debugMode);
-                currentConfig.enableDebugLogging = !debugMode;
-                devLog('Debug logging toggled:', !debugMode);
-            }, [debugMode]);
-
-            // Save data to localStorage (development mode)
-            useEffect(() => {
-                if (isDev) {
-                    devLog('Saving data to localStorage...');
-                    const weekKey = formatWeekKey(currentDate);
-                    localStorage.setItem(`dev_weekData_${weekKey}`, JSON.stringify(currentWeekData));
+            // Save week data to database and localStorage
+            const saveWeekData = async (weekKey, data) => {
+                if (!user) return false;
+                
+                // Save to localStorage as backup
+                const localStorageKey = `marriageMeetings_weekData_${user.id}`;
+                try {
+                    localStorage.setItem(localStorageKey, JSON.stringify(data));
+                    console.log('Week data saved to localStorage');
+                } catch (error) {
+                    console.error('Error saving to localStorage:', error);
                 }
-            }, [currentWeekData, isDev, currentDate]);
+                
+                try {
+                    // Use service role access for simple database operations
+                    const { error } = await supabase
+                        .from(TABLE_NAME)
+                        .upsert({
+                            week_key: weekKey,
+                            user_id: user.id,
+                            data: data
+                        }, {
+                            onConflict: 'week_key,user_id'
+                        });
 
-            // Load data from localStorage (development mode)
-            useEffect(() => {
-                if (isDev) {
-                    devLog('Loading data from localStorage...');
-                    const weekKey = formatWeekKey(currentDate);
-                    const savedData = localStorage.getItem(`dev_weekData_${weekKey}`);
+                    if (error) {
+                        console.log('Save error:', error);
+                        console.log('Week data saved to localStorage as backup');
+                        return false;
+                    }
+
+                    setLastSaved(new Date());
+                    console.log('Week data saved successfully to database');
+                    return true;
+                } catch (error) {
+                    console.log('Save error:', error);
+                    console.log('Week data saved to localStorage as backup');
+                    return false;
+                }
+            };
+
+            // Initialize week data
+            const initializeWeekData = useCallback(async () => {
+                console.log('🔄 Initializing week data...');
+                
+                const weekKey = formatWeekKey(currentDate);
+                
+                // If we already have data for this week, don't reinitialize
+                if (weekData[weekKey]) {
+                    console.log('✅ Week data already exists for this week, skipping initialization');
+                    setIsLoading(false);
+                    return weekData[weekKey];
+                }
+
+                setIsLoading(true);
+                console.log('🔄 Loading week data for week:', weekKey);
+                
+                try {
+                    const savedData = await loadWeekData();
+                    
                     if (savedData) {
-                        setWeekData(prev => ({
-                            ...prev,
-                            [weekKey]: JSON.parse(savedData)
-                        }));
-                        devLog('Data loaded from localStorage');
+                        console.log('✅ Loaded existing week data:', savedData);
+                        setWeekData(prev => ({ ...prev, [weekKey]: savedData }));
+                        setIsLoading(false);
+                        return savedData;
                     }
-                }
-            }, [isDev, currentDate]);
 
-            // Initialize data
-            useEffect(() => {
-                if (isDev) {
-                    devLog('Initializing development data...');
-                    const weekKey = formatWeekKey(currentDate);
-                    if (!weekData[weekKey]) {
-                        setWeekData(prev => ({
-                            ...prev,
-                            [weekKey]: {
-                                schedule: { Monday: [''], Tuesday: [''], Wednesday: [''], Thursday: [''], Friday: [''], Saturday: [''], Sunday: [''] },
-                                todos: [], prayers: [], goals: [], grocery: [], unconfessedSin: [], weeklyWinddown: []
-                            }
-                        }));
+                    console.log('🆕 No existing data found, creating new week data');
+                    
+                    // Create new week data with full structure
+                    const newWeekData = {
+                        schedule: {
+                            Monday: [''], Tuesday: [''], Wednesday: [''], Thursday: [''],
+                            Friday: [''], Saturday: [''], Sunday: ['']
+                        },
+                        todos: [],
+                        prayers: [],
+                        goals: [],
+                        grocery: [],
+                        unconfessedSin: [],
+                        weeklyWinddown: []
+                    };
+
+                    console.log('🆕 Setting new week data:', newWeekData);
+                    setWeekData(prev => ({ ...prev, [weekKey]: newWeekData }));
+                    
+                    // Try to save to database, but don't block on it
+                    try {
+                        await saveWeekData(weekKey, newWeekData);
+                        console.log('✅ New week data saved to database');
+                    } catch (saveError) {
+                        console.log('⚠️ Could not save to database, but continuing:', saveError);
                     }
+                    
+                    setIsLoading(false);
+                    return newWeekData;
+                    
+                } catch (error) {
+                    console.error('❌ Error initializing week data:', error);
+                    
+                    // Create fallback data even if there's an error
+                    const fallbackData = {
+                        schedule: {
+                            Monday: [''], Tuesday: [''], Wednesday: [''], Thursday: [''],
+                            Friday: [''], Saturday: [''], Sunday: ['']
+                        },
+                        todos: [],
+                        prayers: [],
+                        goals: [],
+                        grocery: [],
+                        unconfessedSin: [],
+                        weeklyWinddown: []
+                    };
+                    
+                    console.log('🔄 Setting fallback data due to error');
+                    setWeekData(prev => ({ ...prev, [weekKey]: fallbackData }));
+                    setIsLoading(false);
+                    return fallbackData;
                 }
-            }, [isDev, currentDate]);
+            }, [currentDate, weekData, user]);
+
+            // Initialize on mount
+            useEffect(() => {
+                console.log('🚀 Component mounted, initializing week data...');
+                
+                // Add timeout to prevent infinite loading
+                const initTimeout = setTimeout(() => {
+                    console.log('⏰ Initialization timeout reached, forcing loading to false');
+                    setIsLoading(false);
+                }, 10000); // 10 second timeout
+                
+                const initializeData = async () => {
+                    try {
+                        await initializeWeekData();
+                        clearTimeout(initTimeout);
+                    } catch (error) {
+                        console.error('❌ Error in data initialization:', error);
+                        clearTimeout(initTimeout);
+                        setIsLoading(false);
+                    }
+                };
+                
+                initializeData();
+                
+                return () => {
+                    clearTimeout(initTimeout);
+                };
+            }, [initializeWeekData]);
 
             // Initialize authentication
             useEffect(() => {
                 const initializeAuth = async () => {
                     try {
-                        devLog('Initializing authentication...');
+                        console.log('🔐 Initializing authentication...');
+                        
+                        // Get current user session
                         const { data: { user }, error } = await supabase.auth.getUser();
                         
                         if (error) {
-                            devLog('Error getting user:', error);
+                            console.error('❌ Error getting user:', error);
                             setAuthLoading(false);
                             return;
                         }
                         
                         if (user) {
-                            devLog('User found:', user.email);
+                            console.log('✅ User found:', user.email);
                             setUser(user);
+                            // Check if user is admin (you can set this in user metadata)
                             const isUserAdmin = user.user_metadata?.is_admin === true;
                             setIsAdmin(isUserAdmin);
                         } else {
-                            devLog('No user found');
+                            console.log('No user found');
                         }
                         
                         setAuthLoading(false);
                     } catch (error) {
-                        devLog('Auth initialization error:', error);
+                        console.error('❌ Error in auth initialization:', error);
                         setAuthLoading(false);
                     }
                 };
@@ -511,8 +532,6 @@
 
             return (
                 <div className="min-h-screen">
-                    <DevBanner />
-                    
                     <div className="container mx-auto px-4 py-8">
                         {/* Header */}
                         <div className="text-center mb-8">
@@ -520,12 +539,72 @@
                                 Marriage Meeting Tool
                             </h1>
                             <p className="text-gray-600 text-lg">
-                                Development Version - Plan your week together
+                                Plan your week together, strengthen your relationship
                             </p>
+                            
+                            {/* Admin Button */}
+                            {isAdmin && (
+                                <div className="mt-4">
+                                    <button
+                                        onClick={() => setShowAdmin(!showAdmin)}
+                                        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center gap-2 mx-auto"
+                                    >
+                                        <AdminIcon />
+                                        {showAdmin ? 'Hide' : 'Show'} Admin Panel
+                                    </button>
+                                </div>
+                            )}
                         </div>
 
+                        {/* Admin Panel */}
+                        {showAdmin && isAdmin && (
+                            <div className="modern-card p-6 mb-8">
+                                <h3 className="text-lg font-semibold mb-4 text-blue-600 flex items-center gap-2">
+                                    <AdminIcon />
+                                    Admin Panel
+                                </h3>
+                                
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="bg-white p-4 rounded-lg border">
+                                        <h4 className="font-semibold mb-2">Data Statistics</h4>
+                                        <div className="text-sm space-y-1">
+                                            <div>Schedule Items: {Object.values(currentWeekData.schedule).flat().length}</div>
+                                            <div>Todo Items: {currentWeekData.todos.length}</div>
+                                            <div>Prayer Items: {currentWeekData.prayers.length}</div>
+                                            <div>Goals: {currentWeekData.goals.length}</div>
+                                            <div>Grocery Items: {currentWeekData.grocery.length}</div>
+                                            <div>Unconfessed Sins: {currentWeekData.unconfessedSin.length}</div>
+                                            <div>Winddown Activities: {currentWeekData.weeklyWinddown.length}</div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="bg-white p-4 rounded-lg border">
+                                        <h4 className="font-semibold mb-2">System Info</h4>
+                                        <div className="text-sm space-y-1">
+                                            <div>User: {user.email}</div>
+                                            <div>Last Saved: {lastSaved ? lastSaved.toLocaleString() : 'Never'}</div>
+                                            <div>Current Week: {formatWeekKey(currentDate)}</div>
+                                            <div>Loading: {isLoading ? 'Yes' : 'No'}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                                    <h4 className="font-semibold text-blue-800 mb-2">Admin Functions</h4>
+                                    <ul className="text-sm text-blue-700 space-y-1">
+                                        <li>• Monitor user data and system status</li>
+                                        <li>• View data statistics and user information</li>
+                                        <li>• Access to all user data for support</li>
+                                        <li>• System monitoring and debugging</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        )}
+
+                        <div className="section-divider"></div>
+
                         {/* Week Navigation */}
-                        <div className="flex items-center justify-center gap-6 mb-8">
+                        <div className="flex items-center justify-center gap-6">
                             <button 
                                 onClick={() => navigateWeek(-1)}
                                 className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors shadow-sm"
@@ -551,143 +630,137 @@
                                 <ChevronRightIcon />
                             </button>
                         </div>
+                    </div>
 
-                        {/* Weekly Schedule Section */}
-                        <div className="section-card rounded-xl p-6 mb-8">
-                            <div className="text-center mb-6">
-                                <h2 className="section-header text-2xl font-bold mb-2">
-                                    📅 Weekly Schedule
-                                </h2>
-                                <p className="text-gray-600">
-                                    Plan your week together, day by day
-                                </p>
-                            </div>
-
-                            <div className="section-divider"></div>
-
-                            <div className="flex flex-wrap justify-center gap-8 max-w-6xl mx-auto">
-                                {days.map((day) => {
-                                    const dayItems = currentWeekData.schedule?.[day] || [''];
-                                    return (
-                                        <div key={day} className="w-full sm:w-[calc(50%-1rem)] lg:w-[calc(33.333%-1.33rem)] xl:w-[calc(25%-1.5rem)]">
-                                            <ScheduleDay 
-                                                day={day} 
-                                                items={dayItems}
-                                                onUpdate={updateSchedule}
-                                                onAddLine={() => addScheduleLine(day)}
-                                                onRemoveLine={(index) => removeScheduleLine(day, index)}
-                                            />
-                                        </div>
-                                    );
-                                })}
-                            </div>
-
-                            <div className="section-divider mt-6"></div>
-                            <div className="text-center">
-                                <p className="text-sm text-gray-500">
-                                    Click in any day to add commitments, appointments, or notes
-                                </p>
-                            </div>
-                        </div>
-
-                        {/* Lists Section */}
-                        <div className="grid grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 gap-8">
-                            <ListSection 
-                                title="✅ To-Do List" 
-                                subtitle="Tasks and action items"
-                                listType="todos" 
-                                items={currentWeekData.todos || []} 
-                                onUpdate={updateListItem}
-                                onAdd={addListItem}
-                                onToggle={toggleListItem}
-                                onRemove={removeListItem}
-                                placeholder="Add a new task..."
-                                color="blue"
-                            />
-                            
-                            <ListSection 
-                                title="🙏 Prayer List" 
-                                subtitle="Prayers and requests"
-                                listType="prayers" 
-                                items={currentWeekData.prayers || []} 
-                                onUpdate={updateListItem}
-                                onAdd={addListItem}
-                                onToggle={toggleListItem}
-                                onRemove={removeListItem}
-                                placeholder="Add a prayer request..."
-                                color="purple"
-                            />
-                            
-                            <ListSection 
-                                title="🎯 Goals" 
-                                subtitle="Dreams and aspirations"
-                                listType="goals" 
-                                items={currentWeekData.goals || []} 
-                                onUpdate={updateListItem}
-                                onAdd={addListItem}
-                                onToggle={toggleListItem}
-                                onRemove={removeListItem}
-                                placeholder="Add a new goal..."
-                                color="green"
-                            />
-                            
-                            <ListSection 
-                                title="🛒 Grocery List" 
-                                subtitle="Shopping and supplies"
-                                listType="grocery" 
-                                items={currentWeekData.grocery || []} 
-                                onUpdate={updateListItem}
-                                onAdd={addListItem}
-                                onToggle={toggleListItem}
-                                onRemove={removeListItem}
-                                placeholder="Add grocery item..."
-                                color="orange"
-                            />
-                            
-                            <ListSection 
-                                title="💭 Unconfessed Sin" 
-                                subtitle="Accountability and grace"
-                                listType="unconfessedSin" 
-                                items={currentWeekData.unconfessedSin || []} 
-                                onUpdate={updateListItem}
-                                onAdd={addListItem}
-                                onToggle={toggleListItem}
-                                onRemove={removeListItem}
-                                placeholder="Add for accountability..."
-                                color="red"
-                            />
-                            
-                            <ListSection 
-                                title="🌙 Weekly Winddown" 
-                                subtitle="Weekly relaxation plan together"
-                                listType="weeklyWinddown" 
-                                items={currentWeekData.weeklyWinddown || []} 
-                                onUpdate={updateListItem}
-                                onAdd={addListItem}
-                                onToggle={toggleListItem}
-                                onRemove={removeListItem}
-                                placeholder="Add relaxation activity..."
-                                color="blue"
-                            />
-                        </div>
-
-                        {/* Footer */}
-                        <div className="mt-12 text-center">
-                            <div className="section-divider"></div>
-                            <p className="text-gray-500 text-sm">
-                                Built with ❤️ for strengthening marriages through intentional planning
+                    {/* Weekly Schedule Section */}
+                    <div className="section-card rounded-xl p-6 mb-8">
+                        <div className="text-center mb-6">
+                            <h2 className="section-header text-2xl font-bold mb-2">
+                                📅 Weekly Schedule
+                            </h2>
+                            <p className="text-gray-600">
+                                Plan your week together, day by day
                             </p>
-                            <p className="text-gray-400 text-xs mt-2">
-                                All changes sync in real-time
+                        </div>
+
+                        <div className="section-divider"></div>
+
+                        <div className="flex flex-wrap justify-center gap-8 max-w-6xl mx-auto">
+                            {days.map((day) => {
+                                const dayItems = currentWeekData.schedule?.[day] || [''];
+                                return (
+                                    <div key={day} className="w-full sm:w-[calc(50%-1rem)] lg:w-[calc(33.333%-1.33rem)] xl:w-[calc(25%-1.5rem)]">
+                                        <ScheduleDay 
+                                            day={day} 
+                                            items={dayItems}
+                                            onUpdate={updateSchedule}
+                                            onAddLine={() => addScheduleLine(day)}
+                                            onRemoveLine={(index) => removeScheduleLine(day, index)}
+                                        />
+                                    </div>
+                                );
+                            })}
+                        </div>
+
+                        <div className="section-divider mt-6"></div>
+                        <div className="text-center">
+                            <p className="text-sm text-gray-500">
+                                Click in any day to add commitments, appointments, or notes
                             </p>
                         </div>
                     </div>
 
-                    <DevTools
-                        onLoadMockData={loadMockData}
-                        onClearData={clearAllData}
-                        onToggleDebug={toggleDebug}
-                    />
+                    {/* Lists Section */}
+                    <div className="grid grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 gap-8">
+                        <ListSection 
+                            title="✅ To-Do List" 
+                            subtitle="Tasks and action items"
+                            listType="todos" 
+                            items={currentWeekData.todos || []} 
+                            onUpdate={updateListItem}
+                            onAdd={addListItem}
+                            onToggle={toggleListItem}
+                            onRemove={removeListItem}
+                            placeholder="Add a new task..."
+                            color="blue"
+                        />
+                        
+                        <ListSection 
+                            title="🙏 Prayer List" 
+                            subtitle="Prayers and requests"
+                            listType="prayers" 
+                            items={currentWeekData.prayers || []} 
+                            onUpdate={updateListItem}
+                            onAdd={addListItem}
+                            onToggle={toggleListItem}
+                            onRemove={removeListItem}
+                            placeholder="Add a prayer request..."
+                            color="purple"
+                        />
+                        
+                        <ListSection 
+                            title="🎯 Goals" 
+                            subtitle="Dreams and aspirations"
+                            listType="goals" 
+                            items={currentWeekData.goals || []} 
+                            onUpdate={updateListItem}
+                            onAdd={addListItem}
+                            onToggle={toggleListItem}
+                            onRemove={removeListItem}
+                            placeholder="Add a new goal..."
+                            color="green"
+                        />
+                        
+                        <ListSection 
+                            title="🛒 Grocery List" 
+                            subtitle="Shopping and supplies"
+                            listType="grocery" 
+                            items={currentWeekData.grocery || []} 
+                            onUpdate={updateListItem}
+                            onAdd={addListItem}
+                            onToggle={toggleListItem}
+                            onRemove={removeListItem}
+                            placeholder="Add grocery item..."
+                            color="orange"
+                        />
+                        
+                        <ListSection 
+                            title="💭 Unconfessed Sin" 
+                            subtitle="Accountability and grace"
+                            listType="unconfessedSin" 
+                            items={currentWeekData.unconfessedSin || []} 
+                            onUpdate={updateListItem}
+                            onAdd={addListItem}
+                            onToggle={toggleListItem}
+                            onRemove={removeListItem}
+                            placeholder="Add for accountability..."
+                            color="red"
+                        />
+                        
+                        <ListSection 
+                            title="🌙 Weekly Winddown" 
+                            subtitle="Weekly relaxation plan together"
+                            listType="weeklyWinddown" 
+                            items={currentWeekData.weeklyWinddown || []} 
+                            onUpdate={updateListItem}
+                            onAdd={addListItem}
+                            onToggle={toggleListItem}
+                            onRemove={removeListItem}
+                            placeholder="Add relaxation activity..."
+                            color="blue"
+                        />
+                    </div>
+
+                    {/* Footer */}
+                    <div className="mt-12 text-center">
+                        <div className="section-divider"></div>
+                        <p className="text-gray-500 text-sm">
+                            Built with ❤️ for strengthening marriages through intentional planning
+                        </p>
+                        <p className="text-gray-400 text-xs mt-2">
+                            All changes sync in real-time
+                        </p>
+                    </div>
                 </div>
             );
         };

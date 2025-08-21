@@ -99,8 +99,9 @@
         const { useState, useEffect, useCallback, useRef, useMemo } = React;
 
         // Real Neon Database Client with Fallback
-        const neon = async (connectionString, sql) => {
+        const neon = async (connectionString, sql, params = []) => {
             console.log('🚀 [NEON] Executing query:', sql);
+            console.log('🚀 [NEON] Parameters:', params);
             
             // Try real Neon client first
             if (isNeonAvailable && neonClient) {
@@ -109,9 +110,18 @@
                     const sqlClient = neonClient(connectionString);
                     
                     // Execute the query using tagged template literal syntax
-                    const result = await sqlClient`${sql}`;
-                    console.log('✅ [NEON] Query successful:', result);
-                    return result;
+                    // For parameterized queries, we need to construct the template properly
+                    if (params.length > 0) {
+                        // Use parameterized query
+                        const result = await sqlClient(sql, params);
+                        console.log('✅ [NEON] Query successful:', result);
+                        return result;
+                    } else {
+                        // Use raw SQL (no parameters)
+                        const result = await sqlClient`${sql}`;
+                        console.log('✅ [NEON] Query successful:', result);
+                        return result;
+                    }
                 } catch (error) {
                     console.error('❌ [NEON] Real client failed, falling back to mock:', error);
                     isNeonAvailable = false; // Disable real client for future calls
@@ -427,8 +437,9 @@
                     
                     try {
                         // Try to load from Neon database first
-                        const sql = `SELECT * FROM ${TABLE_NAME} WHERE week_key = '${targetWeekKey}' AND user_id = '${user.id}' LIMIT 1`;
-                        const result = await neon(neonConnectionString, sql);
+                        const sql = `SELECT * FROM ${TABLE_NAME} WHERE week_key = $1 AND user_id = $2 LIMIT 1`;
+                        const params = [targetWeekKey, user.id];
+                        const result = await neon(neonConnectionString, sql, params);
                         
                         if (result && result.length > 0) {
                             console.log('✅ [DEV] Loaded week data from Neon database:', result[0].data_content);
@@ -497,14 +508,15 @@
                         // Save to Neon database first
                         const sql = `
                             INSERT INTO ${TABLE_NAME} (week_key, user_id, data_content)
-                            VALUES ('${weekKey}', '${user.id}', '${JSON.stringify(dataToSave).replace(/'/g, "''")}')
+                            VALUES ($1, $2, $3)
                             ON CONFLICT (week_key, user_id)
                             DO UPDATE SET 
-                                data_content = '${JSON.stringify(dataToSave).replace(/'/g, "''")}',
+                                data_content = $3,
                                 updated_at = NOW()
                         `;
+                        const params = [weekKey, user.id, JSON.stringify(dataToSave)];
                         
-                        const result = await neon(neonConnectionString, sql);
+                        const result = await neon(neonConnectionString, sql, params);
                         console.log('✅ [DEV] Week data saved to Neon database successfully');
                     } catch (error) {
                         console.log('⚠️ [DEV] Neon database save error:', error);

@@ -251,20 +251,24 @@
             const [authLoading, setAuthLoading] = useState(true);
 
             // Load week data from database and localStorage (development mode - handles both auth and no-auth)
-            const loadWeekData = async () => {
+            const loadWeekData = async (weekKey = null) => {
+                const targetWeekKey = weekKey || formatWeekKey(currentDate);
                 let localStorageKey;
                 
                 if (user) {
                     // User is authenticated - try database first, then localStorage
                     localStorageKey = `marriageMeetings_weekData_${user.id}`;
                     console.log('🔄 [DEV] Loading with authenticated user key:', localStorageKey);
+                    console.log('🔄 [DEV] Loading for week:', targetWeekKey);
+                    console.log('🔄 [DEV] Current user:', user.email);
+                    console.log('🔄 [DEV] Using table:', TABLE_NAME);
                     
                     try {
                         // Try to load from database first
                         const { data, error } = await supabase
                             .from(TABLE_NAME)
                             .select('*')
-                            .eq('week_key', formatWeekKey(currentDate))
+                            .eq('week_key', targetWeekKey)
                             .eq('user_id', user.id);
 
                         if (error) {
@@ -288,7 +292,7 @@
                     console.log('🔄 [DEV] Trying localStorage fallback...');
                 } else {
                     // No user - use development key
-                    localStorageKey = `dev_weekData_${formatWeekKey(currentDate)}`;
+                    localStorageKey = `dev_weekData_${targetWeekKey}`;
                     console.log('🔄 [DEV] Loading with development key (no auth):', localStorageKey);
                 }
                 
@@ -315,6 +319,9 @@
                     // User is authenticated - save to both database and localStorage
                     localStorageKey = `marriageMeetings_weekData_${user.id}`;
                     console.log('💾 [DEV] Saving with authenticated user key:', localStorageKey);
+                    console.log('💾 [DEV] Saving for week:', weekKey);
+                    console.log('💾 [DEV] Current user:', user.email);
+                    console.log('💾 [DEV] Using table:', TABLE_NAME);
                     
                     try {
                         // Ensure data is properly structured before saving
@@ -327,6 +334,8 @@
                             unconfessedSin: data.unconfessedSin || [],
                             weeklyWinddown: data.weeklyWinddown || []
                         };
+                        
+                        console.log('💾 [DEV] Data to save:', dataToSave);
                         
                         // Save to database first
                         const { error } = await supabase
@@ -413,7 +422,7 @@
                 console.log('🔄 Loading week data for week:', weekKey);
                 
                 try {
-                    const savedData = await loadWeekData();
+                    const savedData = await loadWeekData(weekKey);
                     
                     if (savedData) {
                         console.log('✅ Loaded existing week data:', savedData);
@@ -711,7 +720,12 @@
                 const newWeekKey = formatWeekKey(newDate);
                 if (user && !weekData[newWeekKey]) {
                     console.log(`🔄 Navigating to new week: ${newWeekKey}, loading data...`);
-                    initializeWeekData();
+                    // Load data for the specific week
+                    loadWeekData(newWeekKey).then(savedData => {
+                        if (savedData) {
+                            setWeekData(prev => ({ ...prev, [newWeekKey]: savedData }));
+                        }
+                    });
                 }
             };
 

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Marriage Meeting Tool - Development</title>
+    <title>Marriage Meeting Tool - Development (DEV TABLE)</title>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -92,8 +92,8 @@
         const supabaseKey = USE_SERVICE_ROLE_KEY ? serviceRoleKey : anonKey;
         const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
         
-        // PRODUCTION TABLE NAME
-        const TABLE_NAME = 'marriage_meetings';
+        // DEVELOPMENT TABLE NAME
+        const TABLE_NAME = 'marriage_meetings_dev';
         
         // Auth state
         let currentUser = null;

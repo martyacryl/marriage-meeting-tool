@@ -109,15 +109,14 @@
                     console.log('✅ [NEON] Using real Neon client');
                     const sqlClient = neonClient(connectionString);
                     
-                    // Execute the query using tagged template literal syntax
-                    // For parameterized queries, we need to construct the template properly
+                    // Execute the query using the correct API
                     if (params.length > 0) {
-                        // Use parameterized query
-                        const result = await sqlClient(sql, params);
+                        // Use parameterized query with sqlClient.query()
+                        const result = await sqlClient.query(sql, params);
                         console.log('✅ [NEON] Query successful:', result);
                         return result;
                     } else {
-                        // Use raw SQL (no parameters)
+                        // Use raw SQL (no parameters) with tagged template literal
                         const result = await sqlClient`${sql}`;
                         console.log('✅ [NEON] Query successful:', result);
                         return result;

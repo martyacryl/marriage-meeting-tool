@@ -130,6 +130,29 @@
             </svg>
         );
 
+        // Utility functions (defined outside component so they can be accessed)
+        // Format week key for storage
+        const formatWeekKey = (date) => {
+            const monday = getMonday(date);
+            return monday.toISOString().split('T')[0];
+        };
+
+        // Get Monday of the week
+        const getMonday = (date) => {
+            const d = new Date(date);
+            const day = d.getDay();
+            const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+            return new Date(d.setDate(diff));
+        };
+
+        // Format week display
+        const formatWeekDisplay = (date) => {
+            const monday = getMonday(date);
+            const sunday = new Date(monday);
+            sunday.setDate(monday.getDate() + 6);
+            return `${monday.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${sunday.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+        };
+
         // Main App Component
         const App = () => {
             const [currentDate, setCurrentDate] = useState(new Date());
@@ -148,28 +171,6 @@
             const currentWeekData = weekData[formatWeekKey(currentDate)] || {
                 schedule: { Monday: [''], Tuesday: [''], Wednesday: [''], Thursday: [''], Friday: [''], Saturday: [''], Sunday: [''] },
                 todos: [], prayers: [], goals: [], grocery: [], unconfessedSin: [], weeklyWinddown: []
-            };
-
-            // Format week key for storage
-            const formatWeekKey = (date) => {
-                const monday = getMonday(date);
-                return monday.toISOString().split('T')[0];
-            };
-
-            // Get Monday of the week
-            const getMonday = (date) => {
-                const d = new Date(date);
-                const day = d.getDay();
-                const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-                return new Date(d.setDate(diff));
-            };
-
-            // Format week display
-            const formatWeekDisplay = (date) => {
-                const monday = getMonday(date);
-                const sunday = new Date(monday);
-                sunday.setDate(monday.getDate() + 6);
-                return `${monday.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${sunday.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
             };
 
             // Navigate between weeks
@@ -977,8 +978,9 @@
             );
         };
 
-        // Render the app
-        ReactDOM.render(<App />, document.getElementById('root'));
+        // Render the app using React 18 createRoot API
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
     </script>
 </body>
 </html>

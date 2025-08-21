@@ -698,58 +698,6 @@
                 initializeAuth();
             }, []);
 
-            // Loading screen
-            if (authLoading) {
-                return (
-                    <div className="min-h-screen flex items-center justify-center">
-                        <div className="text-center">
-                            <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-green-500 mx-auto"></div>
-                            <p className="mt-4 text-gray-600">Loading...</p>
-                        </div>
-                    </div>
-                );
-            }
-
-            // Not authenticated
-            if (!user) {
-                return (
-                    <SignInScreen 
-                        onSignIn={(userData) => {
-                            setUser(userData);
-                            setIsAdmin(false);
-                        }}
-                        onAdminSignIn={(userData) => {
-                            setUser(userData);
-                            setIsAdmin(true);
-                        }}
-                    />
-                );
-            }
-
-            // Show loading while app data is loading
-            if (isLoading) {
-                return (
-                    <div className="flex items-center justify-center min-h-screen">
-                        <div className="text-center">
-                            <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-green-500 mx-auto mb-4"></div>
-                            <p className="text-gray-600">Loading your marriage meeting schedule...</p>
-                            <p className="text-sm text-gray-500 mt-2">This may take a few seconds...</p>
-                            
-                            {/* Fallback button if loading takes too long */}
-                            <button 
-                                onClick={() => {
-                                    console.log('🔄 User clicked fallback button, forcing loading to false');
-                                    setIsLoading(false);
-                                }}
-                                className="mt-4 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
-                            >
-                                Continue Anyway
-                            </button>
-                        </div>
-                    </div>
-                );
-            }
-
             // Get current week data
             const currentWeekKey = formatWeekKey(currentDate);
             const currentWeekData = weekData[currentWeekKey] || {

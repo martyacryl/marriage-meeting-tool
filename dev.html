@@ -353,6 +353,17 @@
             const saveWeekData = async (weekKey, data) => {
                 let localStorageKey;
                 
+                // Ensure data is properly structured before saving
+                const dataToSave = {
+                    schedule: data.schedule || {},
+                    todos: data.todos || [],
+                    prayers: data.prayers || [],
+                    goals: data.goals || [],
+                    grocery: data.grocery || [],
+                    unconfessedSin: data.unconfessedSin || [],
+                    weeklyWinddown: data.weeklyWinddown || []
+                };
+                
                 if (user) {
                     // User is authenticated - save to both database and localStorage
                     localStorageKey = `marriageMeetings_weekData_${user.id}_${weekKey}`;
@@ -362,17 +373,6 @@
                     console.log('💾 [DEV] Using table:', TABLE_NAME);
                     
                     try {
-                        // Ensure data is properly structured before saving
-                        const dataToSave = {
-                            schedule: data.schedule || {},
-                            todos: data.todos || [],
-                            prayers: data.prayers || [],
-                            goals: data.goals || [],
-                            grocery: data.grocery || [],
-                            unconfessedSin: data.unconfessedSin || [],
-                            weeklyWinddown: data.weeklyWinddown || []
-                        };
-                        
                         console.log('💾 [DEV] Data to save:', dataToSave);
                         
                         // Save to Neon database first
@@ -403,27 +403,10 @@
                     localStorageKey = `dev_weekData_${weekKey}`;
                     console.log('💾 [DEV] Saving with development key (no auth):', localStorageKey);
                     
-                    try {
-                        // Ensure data is properly structured before saving
-                        const dataToSave = {
-                            schedule: data.schedule || {},
-                            todos: data.todos || [],
-                            prayers: data.prayers || [],
-                            goals: data.goals || [],
-                            grocery: data.grocery || [],
-                            unconfessedSin: data.unconfessedSin || [],
-                            weeklyWinddown: data.weeklyWinddown || []
-                        };
-                        
-                        localStorage.setItem(localStorageKey, JSON.stringify(dataToSave));
-                        console.log('💾 [DEV] Week data saved to localStorage:', dataToSave);
-                        console.log('💾 [DEV] localStorage key:', localStorageKey);
-                        setLastSaved(new Date());
-                        return true;
-                    } catch (error) {
-                        console.error('❌ [DEV] Error saving to localStorage:', error);
-                        return false;
-                    }
+                    localStorage.setItem(localStorageKey, JSON.stringify(dataToSave));
+                    console.log('💾 [DEV] Week data saved to localStorage:', dataToSave);
+                    setLastSaved(new Date());
+                    return true;
                 }
             };
 
@@ -550,7 +533,7 @@
                 }, 1000); // Wait 1 second after last change
                 
                 return () => clearTimeout(saveTimeout);
-            }, [weekData, currentDate, user]);
+            }, [weekData, currentDate, user, saveWeekData]);
 
             // Data migration: When user logs in, migrate dev data to user data
             useEffect(() => {

@@ -183,16 +183,16 @@
             // Update schedule
             const updateSchedule = (day, index, value) => {
                 const weekKey = formatWeekKey(currentDate);
-                setWeekData(prev => ({
-                    ...prev,
-                    [weekKey]: {
-                        ...prev[weekKey],
-                        schedule: {
-                            ...prev[weekKey]?.schedule,
-                            [day]: prev[weekKey]?.schedule?.[day]?.map((item, i) => i === index ? value : item) || ['']
-                        }
+                const newData = {
+                    ...currentWeekData,
+                    schedule: {
+                        ...currentWeekData.schedule,
+                        [day]: currentWeekData.schedule[day].map((item, i) => i === index ? value : item)
                     }
-                }));
+                };
+                
+                setWeekData(prev => ({ ...prev, [weekKey]: newData }));
+                saveWeekData(weekKey, newData);
             };
 
             // Add schedule line
@@ -274,93 +274,46 @@
                 }));
             };
 
-            // Load week data from database and localStorage
+            // Load week data from localStorage (development mode - no auth required)
             const loadWeekData = async () => {
-                if (!user) return null;
-                
-                // First try to load from localStorage
-                const localStorageKey = `marriageMeetings_weekData_${user.id}`;
+                const localStorageKey = `dev_weekData_${formatWeekKey(currentDate)}`;
                 try {
                     const localStorageData = localStorage.getItem(localStorageKey);
                     if (localStorageData) {
                         const parsedData = JSON.parse(localStorageData);
-                        console.log('Loaded week data from localStorage');
+                        console.log('🔄 [DEV] Loaded week data from localStorage:', parsedData);
                         return parsedData;
                     }
                 } catch (error) {
-                    console.error('Error loading from localStorage:', error);
+                    console.error('❌ [DEV] Error loading from localStorage:', error);
                 }
                 
-                // If no localStorage data, try database with service role access
-                console.log('No localStorage data, trying database with service role');
-                try {
-                    const { data, error } = await supabase
-                        .from(TABLE_NAME)
-                        .select('*')
-                        .eq('week_key', formatWeekKey(currentDate))
-                        .eq('user_id', user.id);
-
-                    if (error) {
-                        console.log('Error loading from database:', error);
-                        return null;
-                    }
-
-                    if (data && data.length > 0) {
-                        console.log('Loaded week data from database');
-                        // Also save to localStorage for future use
-                        try {
-                            localStorage.setItem(localStorageKey, JSON.stringify(data[0].data));
-                            console.log('Week data also saved to localStorage');
-                        } catch (localError) {
-                            console.error('Error saving to localStorage:', localError);
-                        }
-                        return data[0].data;
-                    }
-
-                    return null;
-                } catch (error) {
-                    console.log('Load error from database:', error);
-                    return null;
-                }
+                console.log('🆕 [DEV] No localStorage data found, will create new data');
+                return null;
             };
 
-            // Save week data to database and localStorage
+            // Save week data to localStorage (development mode - no auth required)
             const saveWeekData = async (weekKey, data) => {
-                if (!user) return false;
-                
-                // Save to localStorage as backup
-                const localStorageKey = `marriageMeetings_weekData_${user.id}`;
+                const localStorageKey = `dev_weekData_${weekKey}`;
                 try {
-                    localStorage.setItem(localStorageKey, JSON.stringify(data));
-                    console.log('Week data saved to localStorage');
-                } catch (error) {
-                    console.error('Error saving to localStorage:', error);
-                }
-                
-                try {
-                    // Use service role access for simple database operations
-                    const { error } = await supabase
-                        .from(TABLE_NAME)
-                        .upsert({
-                            week_key: weekKey,
-                            user_id: user.id,
-                            data: data
-                        }, {
-                            onConflict: 'week_key,user_id'
-                        });
-
-                    if (error) {
-                        console.log('Save error:', error);
-                        console.log('Week data saved to localStorage as backup');
-                        return false;
-                    }
-
+                    // Ensure data is properly structured before saving
+                    const dataToSave = {
+                        schedule: data.schedule || {},
+                        todos: data.todos || [],
+                        prayers: data.prayers || [],
+                        goals: data.goals || [],
+                        grocery: data.grocery || [],
+                        unconfessedSin: data.unconfessedSin || [],
+                        weeklyWinddown: data.weeklyWinddown || []
+                    };
+                    
+                    localStorage.setItem(localStorageKey, JSON.stringify(dataToSave));
+                    console.log('💾 [DEV] Week data saved to localStorage:', dataToSave);
+                    console.log('💾 [DEV] localStorage key:', localStorageKey);
                     setLastSaved(new Date());
-                    console.log('Week data saved successfully to database');
                     return true;
                 } catch (error) {
-                    console.log('Save error:', error);
-                    console.log('Week data saved to localStorage as backup');
+                    console.error('❌ [DEV] Error saving to localStorage:', error);
                     return false;
                 }
             };
@@ -473,16 +426,21 @@
                 };
             }, [initializeWeekData]);
 
-            // Auto-save data whenever weekData changes (EXACTLY like production)
+            // Debounced auto-save to prevent excessive saves and race conditions
             useEffect(() => {
-                if (Object.keys(weekData).length > 0 && user) {
-                    const weekKey = formatWeekKey(currentDate);
-                    const currentData = weekData[weekKey];
-                    if (currentData) {
-                        console.log('🔄 Auto-saving week data...');
-                        saveWeekData(weekKey, currentData);
-                    }
-                }
+                if (Object.keys(weekData).length === 0 || !user) return;
+                
+                const weekKey = formatWeekKey(currentDate);
+                const currentData = weekData[weekKey];
+                if (!currentData) return;
+                
+                // Debounce the save operation
+                const saveTimeout = setTimeout(() => {
+                    console.log('🔄 [DEV] Debounced auto-save triggered for week:', weekKey);
+                    saveWeekData(weekKey, currentData);
+                }, 1000); // Wait 1 second after last change
+                
+                return () => clearTimeout(saveTimeout);
             }, [weekData, currentDate, user]);
 
             // Initialize authentication
@@ -565,6 +523,36 @@
                             <p className="text-gray-600 text-lg">
                                 Plan your week together, strengthen your relationship
                             </p>
+                            
+                            {/* Development Save Button */}
+                            <div className="mt-4 flex justify-center gap-4">
+                                <button
+                                    onClick={() => {
+                                        const weekKey = formatWeekKey(currentDate);
+                                        const currentData = weekData[weekKey];
+                                        if (currentData) {
+                                            console.log('🔄 [DEV] Manual save triggered');
+                                            saveWeekData(weekKey, currentData);
+                                        }
+                                    }}
+                                    className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors"
+                                >
+                                    💾 Manual Save
+                                </button>
+                                
+                                <button
+                                    onClick={() => {
+                                        const weekKey = formatWeekKey(currentDate);
+                                        const localStorageKey = `dev_weekData_${weekKey}`;
+                                        const savedData = localStorage.getItem(localStorageKey);
+                                        console.log('🔍 [DEV] Current localStorage data:', savedData);
+                                        console.log('🔍 [DEV] Current weekData state:', weekData[weekKey]);
+                                    }}
+                                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
+                                >
+                                    🔍 Debug Data
+                                </button>
+                            </div>
                             
                             {/* Admin Button */}
                             {isAdmin && (

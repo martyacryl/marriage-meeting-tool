@@ -80,11 +80,12 @@
         // Initialize Neon Database - DEVELOPMENT ENVIRONMENT
         const neonConnectionString = 'postgresql://neondb_owner:npg_JVaULlB0w8mo@ep-soft-rice-adn6s9vn-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require';
         
-        // Create Neon client
-        // Neon client ready
-
-        
-        const neon = window.neon;
+        // Create Neon client - mock for now since client isn't loading
+        const neon = async (connectionString, sql) => {
+            console.log('🧪 [MOCK] Neon query:', sql);
+            // For now, return mock data to test the app
+            return [{ id: 1, week_key: '2025-08-18', user_id: 'dev-user-123', data_content: { schedule: {}, todos: [] } }];
+        };
         
         // DEVELOPMENT TABLE NAME
         const TABLE_NAME = 'marriage_meetings_dev';
@@ -256,6 +257,7 @@
             const [user, setUser] = useState(null);
             const [isAdmin, setIsAdmin] = useState(false);
             const [authLoading, setAuthLoading] = useState(true);
+            const [showAdmin, setShowAdmin] = useState(false); // Added showAdmin state
 
             // Load week data from database and localStorage (development mode - handles both auth and no-auth)
             const loadWeekData = async (weekKey = null) => {

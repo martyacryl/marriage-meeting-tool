@@ -106,180 +106,269 @@
     <script type="text/babel">
         const { useState, useEffect, useCallback, useRef, useMemo } = React;
 
-        // Real Neon Database Client with Fallback
-        const neon = async (connectionString, sql, params = []) => {
-            console.log('🚀 [NEON] Executing query:', sql);
-            console.log('🚀 [NEON] Parameters:', params);
-            
-            // Try real Neon client first
-            if (isNeonAvailable && neonClient) {
+        // Neon Database Manager - Structured approach
+        class NeonDatabaseManager {
+            constructor() {
+                this.isInitialized = false;
+                this.neonClient = null;
+                this.saveDebounceTimer = null;
+                this.SAVE_DEBOUNCE_DELAY = 2000; // Increase debounce delay
+            }
+
+            async initializeNeon() {
                 try {
-                    console.log('✅ [NEON] Using real Neon client');
-                    const sqlClient = neonClient(connectionString);
-                    
-                    // Execute the query using the correct API
-                    if (params.length > 0) {
-                        // Use parameterized query with sqlClient.query() and proper parameter binding
-                        const result = await sqlClient.query(sql, params);
-                        console.log('✅ [NEON] Query successful:', result);
-                        return result;
+                    // Make sure Neon client is properly loaded
+                    if (window.neonClient) {
+                        this.neonClient = window.neonClient;
+                        this.isInitialized = true;
+                        console.log('✅ [NEON] Client initialized successfully');
+                        return true;
                     } else {
-                        // Use raw SQL (no parameters) with tagged template literal
-                        const result = await sqlClient`${sql}`;
-                        console.log('✅ [NEON] Query successful:', result);
-                        return result;
+                        console.error('❌ [NEON] Client not found on window object');
+                        return false;
                     }
                 } catch (error) {
-                    console.error('❌ [NEON] Real client failed, falling back to mock:', error);
-                    isNeonAvailable = false; // Disable real client for future calls
+                    console.error('❌ [NEON] Initialization failed:', error);
+                    return false;
                 }
             }
-            
-            // Fallback to mock system
-            console.log('🔄 [NEON] Using mock fallback system');
-            return await mockNeon(connectionString, sql);
-        };
 
-        // Mock Neon Database Client for Fallback
-        const mockNeon = async (connectionString, sql) => {
-            console.log('🧪 [MOCK] Neon query:', sql);
-            
-            // Parse the SQL to determine operation type
-            const isSelect = sql.trim().toUpperCase().startsWith('SELECT');
-            const isInsert = sql.trim().toUpperCase().startsWith('INSERT');
-            const isUpdate = sql.trim().toUpperCase().startsWith('UPDATE');
-            
-            if (isSelect) {
-                // For SELECT queries, return data from localStorage if it exists
-                const weekKeyMatch = sql.match(/week_key\s*=\s*'([^']+)'/);
-                const userIdMatch = sql.match(/user_id\s*=\s*'([^']+)'/);
-                
-                if (weekKeyMatch && userIdMatch) {
-                    const weekKey = weekKeyMatch[1];
-                    const userId = userIdMatch[1];
-                    const localStorageKey = `marriageMeetings_weekData_${userId}_${weekKey}`;
-                    
-                    const existingData = localStorage.getItem(localStorageKey);
-                    if (existingData) {
-                        try {
-                            const parsedData = JSON.parse(existingData);
-                            console.log('✅ [MOCK] Returning existing data from localStorage:', parsedData);
-                            return [{
-                                id: Date.now(),
-                                week_key: weekKey,
-                                user_id: userId,
-                                data_content: parsedData,
-                                created_at: new Date().toISOString(),
-                                updated_at: new Date().toISOString()
-                            }];
-                        } catch (error) {
-                            console.error('❌ [MOCK] Error parsing localStorage data:', error);
-                        }
+            async executeQuery(query, params = []) {
+                if (!this.isInitialized) {
+                    const initialized = await this.initializeNeon();
+                    if (!initialized) {
+                        throw new Error('Neon client not initialized');
                     }
                 }
-                
-                // Return empty data structure if no existing data
-                console.log('✅ [MOCK] Returning empty data structure for new week');
-                return [{
-                    id: Date.now(),
-                    week_key: '2025-08-18',
-                    user_id: getCurrentUserId(),
-                    data_content: {
-                        schedule: {
-                            Monday: [''],
-                            Tuesday: [''],
-                            Wednesday: [''],
-                            Thursday: [''],
-                            Friday: [''],
-                            Saturday: [''],
-                            Sunday: ['']
-                        },
-                        todos: [],
-                        prayers: [],
-                        goals: [],
-                        grocery: [],
-                        unconfessedSin: [],
-                        weeklyWinddown: []
-                    },
-                    created_at: new Date().toISOString(),
-                    updated_at: new Date().toISOString()
-                }];
-            } else if (isInsert || isUpdate) {
-                // For INSERT/UPDATE queries, extract data and save to localStorage
-                const weekKeyMatch = sql.match(/week_key\s*=\s*'([^']+)'/);
-                const userIdMatch = sql.match(/user_id\s*=\s*'([^']+)'/);
-                const dataMatch = sql.match(/data_content\s*=\s*'(.+?)'(?:\s*,|\s*ON CONFLICT)/);
-                
-                if (weekKeyMatch && userIdMatch && dataMatch) {
-                    const weekKey = weekKeyMatch[1];
-                    const userId = userIdMatch[1];
-                    const dataContent = dataMatch[1].replace(/\\'/g, "'"); // Unescape single quotes
+
+                try {
+                    console.log('🚀 [NEON] Executing query:', query);
+                    console.log('🚀 [NEON] Parameters:', params);
+
+                    // Use the correct Neon syntax - different clients have different methods
+                    let result;
                     
+                    // Try different Neon client methods based on your setup
+                    if (typeof this.neonClient === 'function') {
+                        // If neonClient is a function (serverless driver)
+                        result = await this.neonClient(query, params);
+                    } else if (this.neonClient.query) {
+                        // If neonClient has a query method
+                        result = await this.neonClient.query(query, params);
+                    } else if (this.neonClient.execute) {
+                        // If neonClient has an execute method
+                        result = await this.neonClient.execute(query, params);
+                    } else {
+                        throw new Error('Unknown Neon client interface');
+                    }
+
+                    console.log('✅ [NEON] Query successful:', result);
+                    return result;
+                } catch (error) {
+                    console.error('❌ [NEON] Query failed:', error);
+                    throw error;
+                }
+            }
+
+            async loadWeekData(weekKey, userId) {
+                try {
+                    const query = `
+                        SELECT data_content, updated_at 
+                        FROM marriage_meetings_dev 
+                        WHERE week_key = $1 AND user_id = $2 
+                        LIMIT 1
+                    `;
+                    
+                    const result = await this.executeQuery(query, [weekKey, userId]);
+                    
+                    if (result && result.length > 0) {
+                        const data = typeof result[0].data_content === 'string' 
+                            ? JSON.parse(result[0].data_content) 
+                            : result[0].data_content;
+                        
+                        console.log('✅ [NEON] Week data loaded successfully');
+                        return data;
+                    } else {
+                        console.log('ℹ️ [NEON] No existing data found, returning empty structure');
+                        return this.getEmptyWeekStructure();
+                    }
+                } catch (error) {
+                    console.error('❌ [NEON] Failed to load week data:', error);
+                    throw error;
+                }
+            }
+
+            async saveWeekData(weekKey, userId, data) {
+                try {
+                    const query = `
+                        INSERT INTO marriage_meetings_dev (week_key, user_id, data_content, updated_at)
+                        VALUES ($1, $2, $3, NOW())
+                        ON CONFLICT (week_key, user_id)
+                        DO UPDATE SET 
+                            data_content = EXCLUDED.data_content,
+                            updated_at = NOW()
+                        RETURNING id, updated_at
+                    `;
+
+                    const jsonData = JSON.stringify(data);
+                    const result = await this.executeQuery(query, [weekKey, userId, jsonData]);
+                    
+                    console.log('✅ [NEON] Week data saved successfully:', result);
+                    return result;
+                } catch (error) {
+                    console.error('❌ [NEON] Failed to save week data:', error);
+                    throw error;
+                }
+            }
+
+            debouncedSave(weekKey, userId, data, callback) {
+                // Clear existing timer
+                if (this.saveDebounceTimer) {
+                    clearTimeout(this.saveDebounceTimer);
+                }
+
+                // Set new timer
+                this.saveDebounceTimer = setTimeout(async () => {
                     try {
-                        const parsedData = JSON.parse(dataContent);
-                        const localStorageKey = `marriageMeetings_weekData_${userId}_${weekKey}`;
-                        
-                        localStorage.setItem(localStorageKey, JSON.stringify(parsedData));
-                        console.log('✅ [MOCK] Data saved to localStorage:', parsedData);
-                        
-                        return [{
-                            id: Date.now(),
-                            week_key: weekKey,
-                            user_id: userId,
-                            data_content: parsedData,
-                            created_at: new Date().toISOString(),
-                            updated_at: new Date().toISOString()
-                        }];
+                        await this.saveWeekData(weekKey, userId, data);
+                        if (callback) callback(null, true);
                     } catch (error) {
-                        console.error('❌ [MOCK] Error parsing data content:', error);
-                        return [];
+                        console.error('❌ [NEON] Debounced save failed:', error);
+                        if (callback) callback(error, false);
                     }
-                }
-                
-                console.log('✅ [MOCK] Mock INSERT/UPDATE completed');
-                return [{ id: Date.now() }];
+                }, this.SAVE_DEBOUNCE_DELAY);
             }
-            
-            return [];
-        };
 
-        // Test the Neon connection
-        const testNeonConnection = async () => {
-            try {
-                console.log('🧪 [NEON] Testing Neon connection...');
-                console.log('🔍 [NEON] Client status:', {
-                    isNeonAvailable,
-                    neonClient: !!neonClient,
-                    windowNeonClient: !!window.neonClient,
-                    windowNeon: !!window.neon
-                });
-                
-                // Re-check client availability in case it loaded after initialization
-                if (!isNeonAvailable && (window.neonClient || window.neon)) {
-                    if (window.neonClient) {
-                        neonClient = window.neonClient;
-                        isNeonAvailable = true;
-                        console.log('✅ [NEON] Client found and activated from window.neonClient');
-                    } else if (window.neon) {
-                        neonClient = window.neon;
-                        isNeonAvailable = true;
-                        console.log('✅ [NEON] Client found and activated from window.neon');
+            getEmptyWeekStructure() {
+                return {
+                    schedule: {
+                        Monday: [""],
+                        Tuesday: [""],
+                        Wednesday: [""],
+                        Thursday: [""],
+                        Friday: [""],
+                        Saturday: [""],
+                        Sunday: [""]
+                    },
+                    todos: [],
+                    prayers: [],
+                    goals: [],
+                    grocery: [],
+                    unconfessedSin: [],
+                    weeklyWinddown: []
+                };
+            }
+
+            async testConnection() {
+                try {
+                    const result = await this.executeQuery('SELECT 1 as test');
+                    console.log('✅ [NEON] Connection test successful:', result);
+                    return true;
+                } catch (error) {
+                    console.error('❌ [NEON] Connection test failed:', error);
+                    return false;
+                }
+            }
+        }
+
+        // Updated React hook for managing week data
+        function useWeekData(weekKey, userId) {
+            const [weekData, setWeekData] = React.useState(null);
+            const [isLoading, setIsLoading] = React.useState(true);
+            const [error, setError] = React.useState(null);
+            const dbManager = React.useRef(new NeonDatabaseManager());
+            const lastSaveData = React.useRef(null);
+
+            // Initialize and load data
+            React.useEffect(() => {
+                async function initializeData() {
+                    try {
+                        setIsLoading(true);
+                        setError(null);
+
+                        // Test connection first
+                        const connectionOk = await dbManager.current.testConnection();
+                        if (!connectionOk) {
+                            throw new Error('Database connection failed');
+                        }
+
+                        // Load week data
+                        const data = await dbManager.current.loadWeekData(weekKey, userId);
+                        setWeekData(data);
+                        lastSaveData.current = JSON.stringify(data);
+                        
+                        console.log('✅ Data initialization complete');
+                    } catch (err) {
+                        console.error('❌ Data initialization failed:', err);
+                        setError(err.message);
+                        // Set empty structure as fallback
+                        const emptyData = dbManager.current.getEmptyWeekStructure();
+                        setWeekData(emptyData);
+                        lastSaveData.current = JSON.stringify(emptyData);
+                    } finally {
+                        setIsLoading(false);
                     }
                 }
-                
-                // Use the real connection string for testing
-                const result = await neon(neonConnectionString, 'SELECT 1 as test');
-                console.log('✅ [NEON] Connection test successful:', result);
-                
-                if (isNeonAvailable) {
-                    console.log('🎉 [NEON] Real Neon client is working!');
-                } else {
-                    console.log('⚠️ [NEON] Using mock fallback system');
+
+                if (weekKey && userId) {
+                    initializeData();
                 }
-            } catch (error) {
-                console.error('❌ [NEON] Connection test failed:', error);
-            }
-        };
+            }, [weekKey, userId]);
+
+            // Auto-save functionality with improved debouncing
+            React.useEffect(() => {
+                if (!weekData || isLoading) return;
+
+                const currentDataString = JSON.stringify(weekData);
+                
+                // Only save if data has actually changed
+                if (currentDataString !== lastSaveData.current) {
+                    console.log('🔄 [AUTO-SAVE] Data changed, scheduling save...');
+                    
+                    dbManager.current.debouncedSave(weekKey, userId, weekData, (error, success) => {
+                        if (success) {
+                            lastSaveData.current = currentDataString;
+                            console.log('✅ [AUTO-SAVE] Data saved successfully');
+                        } else {
+                            console.error('❌ [AUTO-SAVE] Save failed:', error);
+                            setError('Auto-save failed');
+                        }
+                    });
+                }
+            }, [weekData, weekKey, userId, isLoading]);
+
+            const updateWeekData = React.useCallback((updater) => {
+                setWeekData(prevData => {
+                    if (typeof updater === 'function') {
+                        return updater(prevData);
+                    } else {
+                        return { ...prevData, ...updater };
+                    }
+                });
+            }, []);
+
+            const manualSave = React.useCallback(async (onSuccess) => {
+                try {
+                    await dbManager.current.saveWeekData(weekKey, userId, weekData);
+                    lastSaveData.current = JSON.stringify(weekData);
+                    console.log('✅ [MANUAL-SAVE] Data saved successfully');
+                    if (onSuccess) onSuccess();
+                    return true;
+                } catch (error) {
+                    console.error('❌ [MANUAL-SAVE] Save failed:', error);
+                    setError('Manual save failed');
+                    return false;
+                }
+            }, [weekKey, userId, weekData]);
+
+            return {
+                weekData,
+                setWeekData: updateWeekData,
+                isLoading,
+                error,
+                manualSave
+            };
+        }
 
         // Initialize Neon Database - DEVELOPMENT ENVIRONMENT
         const neonConnectionString = 'postgresql://neondb_owner:npg_JVaULlB0w8mo@ep-soft-rice-adn6s9vn-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require';
@@ -448,8 +537,6 @@
         // Main App Component (Based on Production Structure)
         const App = () => {
             const [currentDate, setCurrentDate] = useState(new Date());
-            const [weekData, setWeekData] = useState({});
-            const [isLoading, setIsLoading] = useState(true);
             const [lastSaved, setLastSaved] = useState(null);
             
             // Authentication state
@@ -458,279 +545,34 @@
             const [authLoading, setAuthLoading] = useState(true);
             const [showAdmin, setShowAdmin] = useState(false); // Added showAdmin state
 
-            // Load week data from database and localStorage (development mode - handles both auth and no-auth)
-            const loadWeekData = async (weekKey = null) => {
-                const targetWeekKey = weekKey || formatWeekKey(currentDate);
-                let localStorageKey;
-                
-                if (user) {
-                    // User is authenticated - try database first, then localStorage
-                    localStorageKey = `marriageMeetings_weekData_${user.id}_${targetWeekKey}`;
-                    console.log('🔄 [DEV] Loading with authenticated user key:', localStorageKey);
-                    console.log('🔄 [DEV] Loading for week:', targetWeekKey);
-                    console.log('🔄 [DEV] Current user:', user.email);
-                    console.log('🔄 [DEV] Using table:', TABLE_NAME);
-                    
-                    try {
-                        // Try to load from Neon database first
-                        const sql = `SELECT * FROM ${TABLE_NAME} WHERE week_key = $1 AND user_id = $2 LIMIT 1`;
-                        const params = [targetWeekKey, user.id];
-                        const result = await neon(neonConnectionString, sql, params);
-                        
-                        if (result && result.length > 0) {
-                            console.log('✅ [DEV] Loaded week data from Neon database:', result[0].data_content);
-                            // Also save to localStorage for faster future access
-                            try {
-                                localStorage.setItem(localStorageKey, JSON.stringify(result[0].data_content));
-                                console.log('💾 [DEV] Data also saved to localStorage for faster access');
-                            } catch (localError) {
-                                console.error('❌ [DEV] Error saving to localStorage:', localError);
-                            }
-                            return result[0].data_content;
-                        }
-                    } catch (error) {
-                        console.log('⚠️ [DEV] Neon database load error:', error);
-                    }
-                    
-                    // Fallback to localStorage if database fails
-                    console.log('🔄 [DEV] Trying localStorage fallback...');
-                } else {
-                    // No user - use development key
-                    localStorageKey = `dev_weekData_${targetWeekKey}`;
-                    console.log('🔄 [DEV] Loading with development key (no auth):', localStorageKey);
-                }
-                
-                try {
-                    const localStorageData = localStorage.getItem(localStorageKey);
-                    if (localStorageData) {
-                        const parsedData = JSON.parse(localStorageData);
-                        console.log('🔄 [DEV] Loaded week data from localStorage:', parsedData);
-                        return parsedData;
-                    }
-                } catch (error) {
-                    console.error('❌ [DEV] Error loading from localStorage:', error);
-                }
-                
-                console.log('🆕 [DEV] No data found, will create new data');
-                return null;
-            };
+            // Use the new useWeekData hook
+            const currentWeekKey = formatWeekKey(currentDate);
+            const currentUserId = getCurrentUserId();
+            const { weekData, setWeekData, isLoading, error, manualSave } = useWeekData(currentWeekKey, currentUserId);
 
-            // Save week data to database and localStorage (development mode - handles both auth and no-auth)
-            const saveWeekData = async (weekKey, data) => {
-                let localStorageKey;
-                
-                // Ensure data is properly structured before saving
-                const dataToSave = {
-                    schedule: data.schedule || {},
-                    todos: data.todos || [],
-                    prayers: data.prayers || [],
-                    goals: data.goals || [],
-                    grocery: data.grocery || [],
-                    unconfessedSin: data.unconfessedSin || [],
-                    weeklyWinddown: data.weeklyWinddown || []
-                };
-                
-                if (user) {
-                    // User is authenticated - save to both database and localStorage
-                    localStorageKey = `marriageMeetings_weekData_${user.id}_${weekKey}`;
-                    console.log('💾 [DEV] Saving with authenticated user key:', localStorageKey);
-                    console.log('💾 [DEV] Saving for week:', weekKey);
-                    console.log('💾 [DEV] Current user:', user.email);
-                    console.log('💾 [DEV] Using table:', TABLE_NAME);
-                    
-                    try {
-                        console.log('💾 [DEV] Data to save:', dataToSave);
-                        
-                        // Save to Neon database first
-                        const sql = `
-                            INSERT INTO ${TABLE_NAME} (week_key, user_id, data_content)
-                            VALUES ($1, $2, $3)
-                            ON CONFLICT (week_key, user_id)
-                            DO UPDATE SET 
-                                data_content = $3,
-                                updated_at = NOW()
-                        `;
-                        const params = [weekKey, user.id, JSON.stringify(dataToSave)];
-                        
-                        const result = await neon(neonConnectionString, sql, params);
-                        console.log('✅ [DEV] Week data saved to Neon database successfully');
-                    } catch (error) {
-                        console.log('⚠️ [DEV] Neon database save error:', error);
-                        console.log('💾 [DEV] Data saved to localStorage as backup');
-                    }
-                    
-                    // Also save to localStorage for faster access
-                    localStorage.setItem(localStorageKey, JSON.stringify(dataToSave));
-                    console.log('💾 [DEV] Week data also saved to localStorage:', dataToSave);
-                    setLastSaved(new Date());
-                    return true;
-                    
-                } else {
-                    // No user - save to localStorage only
-                    localStorageKey = `dev_weekData_${weekKey}`;
-                    console.log('💾 [DEV] Saving with development key (no auth):', localStorageKey);
-                    
-                    localStorage.setItem(localStorageKey, JSON.stringify(dataToSave));
-                    console.log('💾 [DEV] Week data saved to localStorage:', dataToSave);
-                    setLastSaved(new Date());
-                    return true;
-                }
-            };
 
-            // Initialize week data
-            const initializeWeekData = useCallback(async () => {
-                console.log('🔄 Initializing week data...');
-                
-                const weekKey = formatWeekKey(currentDate);
-                
-                setIsLoading(true);
-                console.log('🔄 Loading week data for week:', weekKey);
-                
-                try {
-                    const savedData = await loadWeekData(weekKey);
-                    
-                    if (savedData) {
-                        console.log('✅ Loaded existing week data:', savedData);
-                        setWeekData(prev => ({ ...prev, [weekKey]: savedData }));
-                        setIsLoading(false);
-                        return savedData;
-                    }
 
-                    console.log('🆕 No existing data found, creating new week data');
-                    
-                    // Create new week data with full structure
-                    const newWeekData = {
-                        schedule: {
-                            Monday: [''], Tuesday: [''], Wednesday: [''], Thursday: [''],
-                            Friday: [''], Saturday: [''], Sunday: ['']
-                        },
-                        todos: [],
-                        prayers: [],
-                        goals: [],
-                        grocery: [],
-                        unconfessedSin: [],
-                        weeklyWinddown: []
-                    };
 
-                    console.log('🆕 Setting new week data:', newWeekData);
-                    setWeekData(prev => ({ ...prev, [weekKey]: newWeekData }));
-                    
-                    // Try to save to database, but don't block on it
-                    try {
-                        await saveWeekData(weekKey, newWeekData);
-                        console.log('✅ New week data saved to database');
-                    } catch (saveError) {
-                        console.log('⚠️ Could not save to database, but continuing:', saveError);
-                    }
-                    
-                    setIsLoading(false);
-                    return newWeekData;
-                    
-                } catch (error) {
-                    console.error('❌ Error initializing week data:', error);
-                    
-                    // Create fallback data even if there's an error
-                    const fallbackData = {
-                        schedule: {
-                            Monday: [''], Tuesday: [''], Wednesday: [''], Thursday: [''],
-                            Friday: [''], Saturday: [''], Sunday: ['']
-                        },
-                        todos: [],
-                        prayers: [],
-                        goals: [],
-                        grocery: [],
-                        unconfessedSin: [],
-                        weeklyWinddown: []
-                    };
-                    
-                    console.log('🔄 Setting fallback data due to error');
-                    setWeekData(prev => ({ ...prev, [weekKey]: fallbackData }));
-                    setIsLoading(false);
-                    return fallbackData;
-                }
-            }, [currentDate, user]);
 
-            // Initialize week data AFTER authentication is complete
+            // Test Neon connection after authentication is complete
             useEffect(() => {
-                // Only initialize data after authentication is complete
                 if (authLoading) {
-                    console.log('⏳ Waiting for authentication to complete before initializing data...');
+                    console.log('⏳ Waiting for authentication to complete...');
                     return;
                 }
                 
-                console.log('🚀 Authentication complete, initializing week data...');
+                console.log('🚀 Authentication complete, testing Neon connection...');
                 
-                // Add timeout to prevent infinite loading
-                const initTimeout = setTimeout(() => {
-                    console.log('⏰ Initialization timeout reached, forcing loading to false');
-                    setIsLoading(false);
-                }, 10000); // 10 second timeout
-                
-                const initializeData = async () => {
-                    try {
-                        await initializeWeekData();
-                        clearTimeout(initTimeout);
-                        
-                        // Test Neon connection after data initialization
-                        setTimeout(() => {
-                            testNeonConnection();
-                        }, 1000);
-                    } catch (error) {
-                        console.error('❌ Error in data initialization:', error);
-                        clearTimeout(initTimeout);
-                        setIsLoading(false);
-                    }
-                };
-                
-                initializeData();
-                
-                return () => {
-                    clearTimeout(initTimeout);
-                };
-            }, [authLoading, initializeWeekData]);
+                // Test Neon connection after authentication
+                setTimeout(() => {
+                    // The useWeekData hook will handle data initialization
+                    console.log('✅ Ready to use Neon database');
+                }, 1000);
+            }, [authLoading]);
 
-            // Debounced auto-save to prevent excessive saves and race conditions
-            useEffect(() => {
-                if (Object.keys(weekData).length === 0) return;
-                
-                const weekKey = formatWeekKey(currentDate);
-                const currentData = weekData[weekKey];
-                if (!currentData) return;
-                
-                // Debounce the save operation
-                const saveTimeout = setTimeout(() => {
-                    console.log('🔄 [DEV] Debounced auto-save triggered for week:', weekKey);
-                    console.log('🔄 [DEV] Current data to save:', currentData);
-                    saveWeekData(weekKey, currentData);
-                }, 1000); // Wait 1 second after last change
-                
-                return () => clearTimeout(saveTimeout);
-            }, [weekData, currentDate, user, saveWeekData]);
 
-            // Data migration: When user logs in, migrate dev data to user data
-            useEffect(() => {
-                if (user && Object.keys(weekData).length > 0) {
-                    const weekKey = formatWeekKey(currentDate);
-                    const devKey = `dev_weekData_${weekKey}`;
-                    const userKey = `marriageMeetings_weekData_${user.id}`;
-                    
-                    // Check if we have dev data that needs migration
-                    const devData = localStorage.getItem(devKey);
-                    if (devData) {
-                        console.log('🔄 [DEV] Migrating dev data to user data for week:', weekKey);
-                        try {
-                            const parsedData = JSON.parse(devData);
-                            // Save to user key
-                            localStorage.setItem(userKey, JSON.stringify(parsedData));
-                            // Remove dev key
-                            localStorage.removeItem(devKey);
-                            console.log('✅ [DEV] Data migration completed');
-                        } catch (error) {
-                            console.error('❌ [DEV] Error during data migration:', error);
-                        }
-                    }
-                }
-            }, [user, currentDate]);
+
+
 
             // Initialize authentication
             useEffect(() => {
@@ -760,9 +602,8 @@
                 initializeAuth();
             }, []);
 
-            // Get current week data
-            const currentWeekKey = formatWeekKey(currentDate);
-            const currentWeekData = weekData[currentWeekKey] || {
+            // Get current week data from the hook
+            const currentWeekData = weekData || {
                 schedule: {
                     Monday: [''], Tuesday: [''], Wednesday: [''], Thursday: [''],
                     Friday: [''], Saturday: [''], Sunday: ['']
@@ -777,88 +618,70 @@
 
             // Update functions
             const updateSchedule = (day, index, value) => {
-                const weekKey = formatWeekKey(currentDate);
-                const newData = {
-                    ...currentWeekData,
+                setWeekData(prevData => ({
+                    ...prevData,
                     schedule: {
-                        ...currentWeekData.schedule,
-                        [day]: currentWeekData.schedule[day].map((item, i) => i === index ? value : item)
+                        ...prevData.schedule,
+                        [day]: prevData.schedule[day].map((item, i) => i === index ? value : item)
                     }
-                };
-                
-                setWeekData(prev => ({ ...prev, [weekKey]: newData }));
-                saveWeekData(weekKey, newData);
+                }));
             };
 
             const addScheduleLine = (day) => {
-                const weekKey = formatWeekKey(currentDate);
-                const newData = {
-                    ...currentWeekData,
+                setWeekData(prevData => ({
+                    ...prevData,
                     schedule: {
-                        ...currentWeekData.schedule,
-                        [day]: [...currentWeekData.schedule[day], '']
+                        ...prevData.schedule,
+                        [day]: [...prevData.schedule[day], '']
                     }
-                };
-                
-                setWeekData(prev => ({ ...prev, [weekKey]: newData }));
-                saveWeekData(weekKey, newData);
+                }));
             };
 
             const removeScheduleLine = (day, index) => {
-                const weekKey = formatWeekKey(currentDate);
-                const newData = {
-                    ...currentWeekData,
+                setWeekData(prevData => ({
+                    ...prevData,
                     schedule: {
-                        ...currentWeekData.schedule,
-                        [day]: currentWeekData.schedule[day].filter((_, i) => i !== index)
+                        ...prevData.schedule,
+                        [day]: prevData.schedule[day].filter((_, i) => i !== index)
                     }
-                };
-                
-                setWeekData(prev => ({ ...prev, [weekKey]: newData }));
-                saveWeekData(weekKey, newData);
+                }));
             };
 
             const addListItem = (listType) => {
-                const weekKey = formatWeekKey(currentDate);
-                const currentItems = currentWeekData[listType] || [];
-                const newItem = { id: Date.now(), text: '', completed: false };
-                const newData = {
-                    ...currentWeekData,
-                    [listType]: [...currentItems, newItem]
-                };
-                
-                setWeekData(prev => ({ ...prev, [weekKey]: newData }));
-                saveWeekData(weekKey, newData);
+                setWeekData(prevData => {
+                    const currentItems = prevData[listType] || [];
+                    const newItem = { id: Date.now(), text: '', completed: false };
+                    return {
+                        ...prevData,
+                        [listType]: [...currentItems, newItem]
+                    };
+                });
             };
 
             const updateListItem = (listType, id, text) => {
-                const weekKey = formatWeekKey(currentDate);
-                const currentItems = currentWeekData[listType] || [];
-                const updatedItems = currentItems.map(item => 
-                    item.id === id ? { ...item, text } : item
-                );
-                const newData = {
-                    ...currentWeekData,
-                    [listType]: updatedItems
-                };
-                
-                setWeekData(prev => ({ ...prev, [weekKey]: newData }));
-                saveWeekData(weekKey, newData);
+                setWeekData(prevData => {
+                    const currentItems = prevData[listType] || [];
+                    const updatedItems = currentItems.map(item => 
+                        item.id === id ? { ...item, text } : item
+                    );
+                    return {
+                        ...prevData,
+                        [listType]: updatedItems
+                    };
+                });
             };
 
             const toggleListItem = (listType, id) => {
-                const weekKey = formatWeekKey(currentDate);
-                const currentItems = currentWeekData[listType] || [];
-                const updatedItems = currentItems.map(item => 
-                    item.id === id ? { ...item, completed: !item.completed } : item
-                );
-                const newData = {
-                    ...currentWeekData,
-                    [listType]: updatedItems
-                };
-                
-                setWeekData(prev => ({ ...prev, [weekKey]: newData }));
-                saveWeekData(weekKey, newData);
+                setWeekData(prevData => {
+                    const currentItems = prevData[listType] || [];
+                    const updatedItems = currentItems.map(item => 
+                        item.id === id ? { ...item, completed: !item.completed } : item
+                    );
+                    return {
+                        ...prevData,
+                        [listType]: updatedItems
+                    };
+                });
             };
 
             const removeListItem = (listType, id) => {
@@ -965,20 +788,29 @@
                             {/* Development Save Button */}
                             <div className="mt-4 flex justify-center gap-4">
                                 <button
-                                    onClick={testNeonConnection}
+                                    onClick={async () => {
+                                        try {
+                                            console.log('🧪 Testing Neon connection...');
+                                            const dbManager = new NeonDatabaseManager();
+                                            const result = await dbManager.testConnection();
+                                            if (result) {
+                                                console.log('✅ Neon connection test successful!');
+                                                alert('✅ Neon connection test successful!');
+                                            } else {
+                                                console.log('❌ Neon connection test failed!');
+                                                alert('❌ Neon connection test failed!');
+                                            }
+                                        } catch (error) {
+                                            console.error('❌ Neon connection test error:', error);
+                                            alert('❌ Neon connection test error: ' + error.message);
+                                        }
+                                    }}
                                     className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition-colors"
                                 >
                                     🧪 Test Neon
                                 </button>
                                 <button
-                                    onClick={() => {
-                                        const weekKey = formatWeekKey(currentDate);
-                                        const currentData = weekData[weekKey];
-                                        if (currentData) {
-                                            console.log('🔄 [DEV] Manual save triggered');
-                                            saveWeekData(weekKey, currentData);
-                                        }
-                                    }}
+                                    onClick={() => manualSave(() => setLastSaved(new Date()))}
                                     className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors"
                                 >
                                     💾 Manual Save
@@ -986,16 +818,28 @@
                                 
                                 <button
                                     onClick={() => {
-                                        const weekKey = formatWeekKey(currentDate);
-                                        const localStorageKey = user ? `marriageMeetings_weekData_${user.id}_${weekKey}` : `dev_weekData_${weekKey}`;
-                                        const savedData = localStorage.getItem(localStorageKey);
-                                        console.log('🔍 [DEV] Current localStorage data:', savedData);
-                                        console.log('🔍 [DEV] Current weekData state:', weekData[weekKey]);
+                                        console.log('🔍 [DEBUG] Current weekData:', weekData);
+                                        console.log('🔍 [DEBUG] Current error:', error);
+                                        console.log('🔍 [DEBUG] Current loading state:', isLoading);
                                     }}
                                     className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
                                 >
                                     🔍 Debug Data
                                 </button>
+                            </div>
+                            
+                            {/* Status Display */}
+                            <div className="mt-4 text-center">
+                                {error && (
+                                    <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-2">
+                                        Error: {error}
+                                    </div>
+                                )}
+                                <div className="text-sm text-gray-500">
+                                    Auto-save: {error ? 'Error' : 'Active'} | 
+                                    Status: {isLoading ? 'Loading...' : 'Ready'} |
+                                    Last Saved: {lastSaved ? lastSaved.toLocaleTimeString() : 'Never'}
+                                </div>
                             </div>
                             
                             {/* Admin Button */}

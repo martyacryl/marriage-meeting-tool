@@ -10,18 +10,20 @@ const config = {
     tableName: 'marriage_meetings_dev', // Development table
     enableDebugLogging: true,
     enableMockData: true,
-    environment: 'development'
+    environment: 'development',
+    netlifyUrl: 'https://your-dev-app.netlify.app' // Replace with your dev Netlify URL
   },
 
   // Production Environment
   production: {
     supabaseUrl: 'https://gkmclzlgrcmqocfoxkui.supabase.co',
     anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdrbWNsemxncmNtcW9jZm94a3VpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU2MDYzNzEsImV4cCI6MjA3MTE4MjM3MX0.ovOR0iMGao5qvrAThrx8KucLyTctiRkVbNJvYdPEyk0',
-    serviceRoleKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdrbWNsemxncmNtcW9jZm94a3VpIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1NTYwNjM3MSwiZXhwIjoyMDcxMTgyMzcxfQ.Iz1__lQGZmxAiiMlildaypRObXBUzGUzGu72DznKsGxTWk',
+    serviceRoleKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdrbWNsemxncmNtcW9jZm94a3VpIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1NTYwNjM3MSwiZXhwIjoyMDcxMTgyMzcxfQ.Iz1__lQGZmxAiiMlildaypRObXBUzGu72DznKsGxTWk',
     tableName: 'marriage_meetings', // Production table
     enableDebugLogging: false,
     enableMockData: false,
-    environment: 'production'
+    environment: 'production',
+    netlifyUrl: 'https://your-prod-app.netlify.app' // Replace with your prod Netlify URL
   }
 };
 

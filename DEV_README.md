@@ -74,6 +74,7 @@ marriage-meeting-tool/
 ├── dev.html               # Development version
 ├── config.js              # Environment configuration
 ├── setup_dev_database.sql # Development database setup
+├── WEB_APP_DEV_SETUP.md  # Web app setup guide
 ├── DEV_README.md          # This file
 ├── README.md              # Production documentation
 └── ...                    # Other production files
@@ -90,13 +91,15 @@ const config = {
     tableName: 'marriage_meetings_dev',
     enableDebugLogging: true,
     enableMockData: true,
-    environment: 'development'
+    environment: 'development',
+    netlifyUrl: 'https://your-dev-app.netlify.app'
   },
   production: {
     tableName: 'marriage_meetings',
     enableDebugLogging: false,
     enableMockData: false,
-    environment: 'production'
+    environment: 'production',
+    netlifyUrl: 'https://your-prod-app.netlify.app'
   }
 };
 ```

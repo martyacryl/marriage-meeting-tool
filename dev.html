@@ -32,6 +32,14 @@
             console.error('❌ [NEON] Error initializing client:', error);
         }
 
+        // Debug: Log the current state
+        console.log('🔍 [NEON] Initialization complete:', {
+            isNeonAvailable,
+            neonClient: !!neonClient,
+            windowNeonClient: !!window.neonClient,
+            windowNeon: !!window.neon
+        });
+
         tailwind.config = {
             theme: {
                 extend: {
@@ -242,9 +250,22 @@
                 console.log('🔍 [NEON] Client status:', {
                     isNeonAvailable,
                     neonClient: !!neonClient,
-                    windowNeon: !!window.neon,
-                    windowNeon: !!window.Neon
+                    windowNeonClient: !!window.neonClient,
+                    windowNeon: !!window.neon
                 });
+                
+                // Re-check client availability in case it loaded after initialization
+                if (!isNeonAvailable && (window.neonClient || window.neon)) {
+                    if (window.neonClient) {
+                        neonClient = window.neonClient;
+                        isNeonAvailable = true;
+                        console.log('✅ [NEON] Client found and activated from window.neonClient');
+                    } else if (window.neon) {
+                        neonClient = window.neon;
+                        isNeonAvailable = true;
+                        console.log('✅ [NEON] Client found and activated from window.neon');
+                    }
+                }
                 
                 const result = await neon('test-connection', 'SELECT 1 as test');
                 console.log('✅ [NEON] Connection test successful:', result);

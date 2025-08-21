@@ -797,50 +797,59 @@
             };
 
             const dayColors = {
-                Monday: 'from-blue-50 to-blue-100',
-                Tuesday: 'from-purple-50 to-purple-100',
-                Wednesday: 'from-green-50 to-green-100',
-                Thursday: 'from-yellow-50 to-yellow-100',
-                Friday: 'from-pink-50 to-pink-100',
-                Saturday: 'from-indigo-50 to-indigo-100',
-                Sunday: 'from-red-50 to-red-100'
+                Monday: 'border-slate-300 focus:border-slate-500 focus:ring-slate-200',
+                Tuesday: 'border-slate-400 focus:border-slate-600 focus:ring-slate-200',
+                Wednesday: 'border-purple-300 focus:border-purple-500 focus:ring-purple-200',
+                Thursday: 'border-purple-400 focus:border-purple-600 focus:ring-purple-200',
+                Friday: 'border-purple-500 focus:border-purple-700 focus:ring-purple-200',
+                Saturday: 'border-purple-600 focus:border-purple-800 focus:ring-purple-200',
+                Sunday: 'border-purple-700 focus:border-purple-900 focus:ring-purple-200'
             };
 
             return (
-                <div className={`bg-gradient-to-br ${dayColors[day]} rounded-lg p-4 border border-gray-200 shadow-sm`}>
-                    <h3 className="font-semibold text-gray-800 mb-3 text-center">{day}</h3>
+                <div className="modern-card p-8 min-h-[350px] flex flex-col w-full">
+                    <div className="text-center mb-6">
+                        <h3 className="font-bold text-gray-800 text-xl mb-3">
+                            {day}
+                        </h3>
+                        <div className="w-full h-px bg-gradient-to-r from-transparent via-purple-300 to-transparent"></div>
+                    </div>
                     
-                    <div className="space-y-2">
-                        {items.map((item, index) => (
-                            <div key={index} className="relative">
+                    <div className="space-y-4 flex-1">
+                        {items.map((line, index) => (
+                            <div key={index} className="relative group">
                                 <textarea
-                                    value={localInputs[index] || ''}
-                                    onChange={(e) => handleInputChange(index, e.target.value)}
+                                    value={localInputs[index] !== undefined ? localInputs[index] : line}
+                                    onChange={(e) => {
+                                        handleInputChange(index, e.target.value);
+                                        autoResize(e);
+                                    }}
                                     onBlur={() => handleInputBlur(index)}
                                     onInput={autoResize}
-                                    placeholder="Add activity..."
-                                    className="w-full p-2 text-sm border border-gray-300 rounded resize-none focus:outline-none focus:ring-2 focus:ring-green-500"
+                                    className={`w-full text-base border-2 ${dayColors[day]} rounded-xl px-5 py-4 resize-none overflow-hidden min-h-[4rem] focus:outline-none focus:ring-2 focus:ring-current transition-all duration-200 placeholder-gray-400`}
+                                    placeholder={`What's planned for ${day}?`}
                                     rows="1"
                                 />
                                 {items.length > 1 && (
                                     <button
                                         onClick={() => onRemoveLine(index)}
-                                        className="absolute top-1 right-1 text-red-500 hover:text-red-700 text-xs"
+                                        className="absolute right-3 top-3 opacity-0 group-hover:opacity-100 text-red-500 hover:text-red-700 p-2 bg-white rounded-full shadow-lg transition-all duration-200 hover:scale-110"
+                                        title="Remove line"
                                     >
-                                        ×
+                                        ✕
                                     </button>
                                 )}
                             </div>
                         ))}
+                        
+                        <button
+                            onClick={() => onAddLine()}
+                            className="w-full text-base text-gray-600 hover:text-purple-700 py-4 border-2 border-dashed border-gray-300 hover:border-purple-400 rounded-xl transition-all duration-200 flex items-center justify-center gap-3 hover:bg-purple-50 font-medium"
+                        >
+                            <PlusIcon />
+                            Add another line
+                        </button>
                     </div>
-                    
-                    <button
-                        onClick={() => onAddLine()}
-                        className="w-full mt-3 p-2 text-sm bg-white border border-gray-300 rounded hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
-                    >
-                        <PlusIcon />
-                        Add Line
-                    </button>
                 </div>
             );
         };

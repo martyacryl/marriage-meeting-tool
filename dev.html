@@ -76,7 +76,7 @@
     <script type="text/babel">
         const { useState, useEffect, useCallback, useRef, useMemo } = React;
 
-        // Initialize Supabase - PRODUCTION ENVIRONMENT with Auth
+        // Initialize Supabase - DEVELOPMENT ENVIRONMENT with Auth
         const supabaseUrl = 'https://gkmclzlgrcmqocfoxkui.supabase.co';
         
         // Choose your key type:
@@ -238,126 +238,17 @@
             );
         };
 
-        // Main App Component
+        // Main App Component (Based on Production Structure)
         const App = () => {
             const [currentDate, setCurrentDate] = useState(new Date());
             const [weekData, setWeekData] = useState({});
-            const [isLoading, setIsLoading] = useState(false);
+            const [isLoading, setIsLoading] = useState(true);
             const [lastSaved, setLastSaved] = useState(null);
-            const [authLoading, setAuthLoading] = useState(true);
+            
+            // Authentication state
             const [user, setUser] = useState(null);
             const [isAdmin, setIsAdmin] = useState(false);
-            const [showAdmin, setShowAdmin] = useState(false);
-
-            // Days of the week
-            const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-
-            // Get current week data
-            const currentWeekData = weekData[formatWeekKey(currentDate)] || {
-                schedule: { Monday: [''], Tuesday: [''], Wednesday: [''], Thursday: [''], Friday: [''], Saturday: [''], Sunday: [''] },
-                todos: [], prayers: [], goals: [], grocery: [], unconfessedSin: [], weeklyWinddown: []
-            };
-
-            // Navigate between weeks
-            const navigateWeek = (direction) => {
-                const newDate = new Date(currentDate);
-                newDate.setDate(newDate.getDate() + (direction * 7));
-                setCurrentDate(newDate);
-            };
-
-            // Update schedule
-            const updateSchedule = (day, index, value) => {
-                const weekKey = formatWeekKey(currentDate);
-                const newData = {
-                    ...currentWeekData,
-                    schedule: {
-                        ...currentWeekData.schedule,
-                        [day]: currentWeekData.schedule[day].map((item, i) => i === index ? value : item)
-                    }
-                };
-                
-                setWeekData(prev => ({ ...prev, [weekKey]: newData }));
-                saveWeekData(weekKey, newData);
-            };
-
-            // Add schedule line
-            const addScheduleLine = (day) => {
-                const weekKey = formatWeekKey(currentDate);
-                setWeekData(prev => ({
-                    ...prev,
-                    [weekKey]: {
-                        ...prev[weekKey],
-                        schedule: {
-                            ...prev[weekKey]?.schedule,
-                            [day]: [...(prev[weekKey]?.schedule?.[day] || ['']), '']
-                        }
-                    }
-                }));
-            };
-
-            // Remove schedule line
-            const removeScheduleLine = (day, index) => {
-                const weekKey = formatWeekKey(currentDate);
-                setWeekData(prev => ({
-                    ...prev,
-                    [weekKey]: {
-                        ...prev[weekKey],
-                        schedule: {
-                            ...prev[weekKey]?.schedule,
-                            [day]: prev[weekKey]?.schedule?.[day]?.filter((_, i) => i !== index) || ['']
-                        }
-                    }
-                }));
-            };
-
-            // Update list item
-            const updateListItem = (listType, index, value) => {
-                const weekKey = formatWeekKey(currentDate);
-                setWeekData(prev => ({
-                    ...prev,
-                    [weekKey]: {
-                        ...prev[weekKey],
-                        [listType]: prev[weekKey]?.[listType]?.map((item, i) => i === index ? value : item) || []
-                    }
-                }));
-            };
-
-            // Add list item
-            const addListItem = (listType, value) => {
-                if (!value.trim()) return;
-                const weekKey = formatWeekKey(currentDate);
-                setWeekData(prev => ({
-                    ...prev,
-                    [weekKey]: {
-                        ...prev[weekKey],
-                        [listType]: [...(prev[weekKey]?.[listType] || []), value.trim()]
-                    }
-                }));
-            };
-
-            // Toggle list item
-            const toggleListItem = (listType, index) => {
-                const weekKey = formatWeekKey(currentDate);
-                setWeekData(prev => ({
-                    ...prev,
-                    [weekKey]: {
-                        ...prev[weekKey],
-                        [listType]: prev[weekKey]?.[listType]?.map((item, i) => i === index ? { ...item, completed: !item.completed } : item) || []
-                    }
-                }));
-            };
-
-            // Remove list item
-            const removeListItem = (listType, index) => {
-                const weekKey = formatWeekKey(currentDate);
-                setWeekData(prev => ({
-                    ...prev,
-                    [weekKey]: {
-                        ...prev[weekKey],
-                        [listType]: prev[weekKey]?.[listType]?.filter((_, i) => i !== index) || []
-                    }
-                }));
-            };
+            const [authLoading, setAuthLoading] = useState(true);
 
             // Load week data from database and localStorage (development mode - handles both auth and no-auth)
             const loadWeekData = async () => {
@@ -501,7 +392,6 @@
                     } catch (error) {
                         console.error('❌ [DEV] Error saving to localStorage:', error);
                         return false;
-                        }
                     }
                 }
             };
@@ -698,23 +588,148 @@
                 initializeAuth();
             }, []);
 
+            // Get current week data
+            const currentWeekKey = formatWeekKey(currentDate);
+            const currentWeekData = weekData[currentWeekKey] || {
+                schedule: {
+                    Monday: [''], Tuesday: [''], Wednesday: [''], Thursday: [''],
+                    Friday: [''], Saturday: [''], Sunday: ['']
+                },
+                todos: [],
+                prayers: [],
+                goals: [],
+                grocery: [],
+                unconfessedSin: [],
+                weeklyWinddown: []
+            };
 
+            // Update functions
+            const updateSchedule = (day, index, value) => {
+                const weekKey = formatWeekKey(currentDate);
+                const newData = {
+                    ...currentWeekData,
+                    schedule: {
+                        ...currentWeekData.schedule,
+                        [day]: currentWeekData.schedule[day].map((item, i) => i === index ? value : item)
+                    }
+                };
+                
+                setWeekData(prev => ({ ...prev, [weekKey]: newData }));
+                saveWeekData(weekKey, newData);
+            };
 
+            const addScheduleLine = (day) => {
+                const weekKey = formatWeekKey(currentDate);
+                const newData = {
+                    ...currentWeekData,
+                    schedule: {
+                        ...currentWeekData.schedule,
+                        [day]: [...currentWeekData.schedule[day], '']
+                    }
+                };
+                
+                setWeekData(prev => ({ ...prev, [weekKey]: newData }));
+                saveWeekData(weekKey, newData);
+            };
 
+            const removeScheduleLine = (day, index) => {
+                const weekKey = formatWeekKey(currentDate);
+                const newData = {
+                    ...currentWeekData,
+                    schedule: {
+                        ...currentWeekData.schedule,
+                        [day]: currentWeekData.schedule[day].filter((_, i) => i !== index)
+                    }
+                };
+                
+                setWeekData(prev => ({ ...prev, [weekKey]: newData }));
+                saveWeekData(weekKey, newData);
+            };
 
-            // Loading screen
+            const addListItem = (listType) => {
+                const weekKey = formatWeekKey(currentDate);
+                const currentItems = currentWeekData[listType] || [];
+                const newItem = { id: Date.now(), text: '', completed: false };
+                const newData = {
+                    ...currentWeekData,
+                    [listType]: [...currentItems, newItem]
+                };
+                
+                setWeekData(prev => ({ ...prev, [weekKey]: newData }));
+                saveWeekData(weekKey, newData);
+            };
+
+            const updateListItem = (listType, id, text) => {
+                const weekKey = formatWeekKey(currentDate);
+                const currentItems = currentWeekData[listType] || [];
+                const updatedItems = currentItems.map(item => 
+                    item.id === id ? { ...item, text } : item
+                );
+                const newData = {
+                    ...currentWeekData,
+                    [listType]: updatedItems
+                };
+                
+                setWeekData(prev => ({ ...prev, [weekKey]: newData }));
+                saveWeekData(weekKey, newData);
+            };
+
+            const toggleListItem = (listType, id) => {
+                const weekKey = formatWeekKey(currentDate);
+                const currentItems = currentWeekData[listType] || [];
+                const updatedItems = currentItems.map(item => 
+                    item.id === id ? { ...item, completed: !item.completed } : item
+                );
+                const newData = {
+                    ...currentWeekData,
+                    [listType]: updatedItems
+                };
+                
+                setWeekData(prev => ({ ...prev, [weekKey]: newData }));
+                saveWeekData(weekKey, newData);
+            };
+
+            const removeListItem = (listType, id) => {
+                const weekKey = formatWeekKey(currentDate);
+                const currentItems = currentWeekData[listType] || [];
+                const updatedItems = currentItems.filter(item => item.id !== id);
+                const newData = {
+                    ...currentWeekData,
+                    [listType]: updatedItems
+                };
+                
+                setWeekData(prev => ({ ...prev, [weekKey]: newData }));
+                saveWeekData(weekKey, newData);
+            };
+
+            const navigateWeek = (direction) => {
+                const newDate = new Date(currentDate);
+                newDate.setDate(newDate.getDate() + (direction * 7));
+                setCurrentDate(newDate);
+                
+                // Ensure the new week's data is loaded
+                const newWeekKey = formatWeekKey(newDate);
+                if (user && !weekData[newWeekKey]) {
+                    console.log(`🔄 Navigating to new week: ${newWeekKey}, loading data...`);
+                    initializeWeekData();
+                }
+            };
+
+            const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+
+            // Show loading while auth is initializing
             if (authLoading) {
                 return (
-                    <div className="min-h-screen flex items-center justify-center">
+                    <div className="flex items-center justify-center min-h-screen">
                         <div className="text-center">
-                            <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-green-500 mx-auto"></div>
-                            <p className="mt-4 text-gray-600">Loading...</p>
+                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+                            <p className="text-gray-600">Initializing...</p>
                         </div>
                     </div>
                 );
             }
 
-            // Not authenticated
+            // Show sign-in screen if not authenticated
             if (!user) {
                 return (
                     <SignInScreen 
@@ -735,7 +750,7 @@
                 return (
                     <div className="flex items-center justify-center min-h-screen">
                         <div className="text-center">
-                            <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-green-500 mx-auto mb-4"></div>
+                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
                             <p className="text-gray-600">Loading your marriage meeting schedule...</p>
                             <p className="text-sm text-gray-500 mt-2">This may take a few seconds...</p>
                             
@@ -745,7 +760,7 @@
                                     console.log('🔄 User clicked fallback button, forcing loading to false');
                                     setIsLoading(false);
                                 }}
-                                className="mt-4 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
+                                className="mt-4 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
                             >
                                 Continue Anyway
                             </button>
@@ -760,7 +775,7 @@
                         {/* Header */}
                         <div className="text-center mb-8">
                             <h1 className="text-4xl font-bold text-gray-800 mb-2">
-                                Marriage Meeting Tool
+                                Marriage Meeting Tool - Development
                             </h1>
                             <p className="text-gray-600 text-lg">
                                 Plan your week together, strengthen your relationship
@@ -850,51 +865,6 @@
                                 </div>
                             </div>
                         </div>
-
-                        {/* Admin Panel */}
-                        {showAdmin && isAdmin && (
-                            <div className="modern-card p-6 mb-8">
-                                <h3 className="text-lg font-semibold mb-4 text-blue-600 flex items-center gap-2">
-                                    <AdminIcon />
-                                    Admin Panel
-                                </h3>
-                                
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div className="bg-white p-4 rounded-lg border">
-                                        <h4 className="font-semibold mb-2">Data Statistics</h4>
-                                        <div className="text-sm space-y-1">
-                                            <div>Schedule Items: {Object.values(currentWeekData.schedule).flat().length}</div>
-                                            <div>Todo Items: {currentWeekData.todos.length}</div>
-                                            <div>Prayer Items: {currentWeekData.prayers.length}</div>
-                                            <div>Goals: {currentWeekData.goals.length}</div>
-                                            <div>Grocery Items: {currentWeekData.grocery.length}</div>
-                                            <div>Unconfessed Sins: {currentWeekData.unconfessedSin.length}</div>
-                                            <div>Winddown Activities: {currentWeekData.weeklyWinddown.length}</div>
-                                        </div>
-                                    </div>
-                                    
-                                    <div className="bg-white p-4 rounded-lg border">
-                                        <h4 className="font-semibold mb-2">System Info</h4>
-                                        <div className="text-sm space-y-1">
-                                            <div>User: {user.email}</div>
-                                            <div>Last Saved: {lastSaved ? lastSaved.toLocaleString() : 'Never'}</div>
-                                            <div>Current Week: {formatWeekKey(currentDate)}</div>
-                                            <div>Loading: {isLoading ? 'Yes' : 'No'}</div>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                                    <h4 className="font-semibold text-blue-800 mb-2">Admin Functions</h4>
-                                    <ul className="text-sm text-blue-700 space-y-1">
-                                        <li>• Monitor user data and system status</li>
-                                        <li>• View data statistics and user information</li>
-                                        <li>• Access to all user data for support</li>
-                                        <li>• System monitoring and debugging</li>
-                                    </ul>
-                                </div>
-                            </div>
-                        )}
 
                         <div className="section-divider"></div>
 
@@ -1164,7 +1134,7 @@
 
             const handleAdd = () => {
                 if (newItem.trim()) {
-                    onAdd(listType, newItem.trim());
+                    onAdd(listType);
                     setNewItem('');
                 }
             };

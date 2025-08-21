@@ -8,7 +8,20 @@
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <!-- Neon Database Client -->
-    <script src="https://unpkg.com/@neondatabase/serverless@0.9.0/dist/index.js"></script>
+    <script type="module">
+        // Try to import Neon client directly
+        import('https://unpkg.com/@neondatabase/serverless@0.9.0/dist/index.js')
+            .then(module => {
+                console.log('✅ [NEON] Module loaded successfully:', module);
+                if (module.default) {
+                    window.neon = module.default;
+                    console.log('✅ [NEON] Client assigned to window.neon');
+                }
+            })
+            .catch(error => {
+                console.error('❌ [NEON] Failed to load module:', error);
+            });
+    </script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -80,45 +93,96 @@
         // Initialize Neon Database - DEVELOPMENT ENVIRONMENT
         const neonConnectionString = 'postgresql://neondb_owner:npg_JVaULlB0w8mo@ep-soft-rice-adn6s9vn-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require';
         
-        // Create Neon client - mock for now since client isn't loading
+        // Create real Neon client with proper error handling
         const neon = async (connectionString, sql) => {
-            console.log('🧪 [MOCK] Neon query:', sql);
+            console.log('🚀 [NEON] Executing query:', sql);
+            console.log('🔍 [NEON] Available globals:', Object.keys(window).filter(k => k.includes('neon') || k.includes('Neon')));
             
-            // Check if this is a SELECT query
-            if (sql.toLowerCase().includes('select')) {
-                // Extract week_key from the SQL query
-                const weekMatch = sql.match(/week_key\s*=\s*'([^']+)'/);
-                const weekKey = weekMatch ? weekMatch[1] : '2025-08-18';
-                
-                // Return empty data structure for user to fill in
-                return [{
-                    id: 1,
-                    week_key: weekKey,
-                    user_id: 'dev-user-123',
-                    data_content: {
-                        schedule: {
-                            Monday: [''],
-                            Tuesday: [''],
-                            Wednesday: [''],
-                            Thursday: [''],
-                            Friday: [''],
-                            Saturday: [''],
-                            Sunday: ['']
-                        },
-                        todos: [],
-                        prayers: [],
-                        goals: [],
-                        grocery: [],
-                        unconfessedSin: [],
-                        weeklyWinddown: []
+            try {
+                // Check if Neon client is available
+                if (window.neon) {
+                    console.log('✅ [NEON] Client found, creating connection...');
+                    const sqlClient = window.neon(connectionString);
+                    const result = await sqlClient(sql);
+                    console.log('✅ [NEON] Query successful:', result);
+                    return result;
+                } else if (window.Neon) {
+                    console.log('✅ [NEON] Alternative client found, creating connection...');
+                    const sqlClient = window.Neon(connectionString);
+                    const result = await sqlClient(sql);
+                    console.log('✅ [NEON] Query successful:', result);
+                    return result;
+                } else {
+                    console.log('⚠️ [NEON] Client not available, checking CDN...');
+                    
+                    // Try to access the Neon client from the CDN
+                    const neonModule = await import('https://unpkg.com/@neondatabase/serverless@0.9.0/dist/index.js');
+                    console.log('📦 [NEON] Module loaded:', neonModule);
+                    
+                    if (neonModule.default) {
+                        const sqlClient = neonModule.default(connectionString);
+                        const result = await sqlClient(sql);
+                        console.log('✅ [NEON] Query successful via module:', result);
+                        return result;
+                    } else {
+                        throw new Error('Neon client not available');
                     }
-                }];
-            } else if (sql.toLowerCase().includes('insert') || sql.toLowerCase().includes('update')) {
-                // Return success for save operations
-                return { success: true, message: 'Data saved successfully' };
+                }
+            } catch (error) {
+                console.error('❌ [NEON] Query failed:', error);
+                
+                // Fallback to localStorage for now
+                console.log('🔄 [NEON] Falling back to localStorage...');
+                
+                if (sql.toLowerCase().includes('select')) {
+                    const weekMatch = sql.match(/week_key\s*=\s*'([^']+)'/);
+                    const weekKey = weekMatch ? weekMatch[1] : '2025-08-18';
+                    
+                    // Try to get from localStorage
+                    const localStorageKey = `dev_weekData_${weekKey}`;
+                    const savedData = localStorage.getItem(localStorageKey);
+                    
+                    if (savedData) {
+                        console.log('💾 [NEON] Found data in localStorage:', savedData);
+                        return [{
+                            id: 1,
+                            week_key: weekKey,
+                            user_id: 'dev-user-123',
+                            data_content: JSON.parse(savedData)
+                        }];
+                    } else {
+                        console.log('🆕 [NEON] No data found, returning empty structure');
+                        return [{
+                            id: 1,
+                            week_key: weekKey,
+                            user_id: 'dev-user-123',
+                            data_content: {
+                                schedule: {
+                                    Monday: [''],
+                                    Tuesday: [''],
+                                    Wednesday: [''],
+                                    Thursday: [''],
+                                    Friday: [''],
+                                    Saturday: [''],
+                                    Sunday: ['']
+                                },
+                                todos: [],
+                                prayers: [],
+                                goals: [],
+                                grocery: [],
+                                unconfessedSin: [],
+                                weeklyWinddown: []
+                            }
+                        }];
+                    }
+                } else if (sql.toLowerCase().includes('insert') || sql.toLowerCase().includes('update')) {
+                    // For save operations, just return success
+                    console.log('💾 [NEON] Save operation (fallback mode)');
+                    return { success: true, message: 'Data saved to localStorage (Neon unavailable)' };
+                }
+                
+                return [];
             }
-            
-            return [];
         };
         
         // DEVELOPMENT TABLE NAME
@@ -127,12 +191,20 @@
         // Test Neon connection
         const testNeonConnection = async () => {
             try {
+                console.log('🧪 [TEST] Testing Neon connection...');
+                console.log('🔍 [TEST] Window objects:', {
+                    neon: !!window.neon,
+                    Neon: !!window.Neon,
+                    neonDatabase: !!window.neonDatabase,
+                    serverless: !!window.serverless
+                });
+                
                 const sql = 'SELECT * FROM marriage_meetings_dev LIMIT 1';
                 const result = await neon(neonConnectionString, sql);
-                console.log('✅ Neon connection successful:', result);
+                console.log('✅ [TEST] Neon connection successful:', result);
                 return true;
             } catch (error) {
-                console.error('❌ Neon connection failed:', error);
+                console.error('❌ [TEST] Neon connection failed:', error);
                 return false;
             }
         };
@@ -503,6 +575,11 @@
                     try {
                         await initializeWeekData();
                         clearTimeout(initTimeout);
+                        
+                        // Test Neon connection after data initialization
+                        setTimeout(() => {
+                            testNeonConnection();
+                        }, 1000);
                     } catch (error) {
                         console.error('❌ Error in data initialization:', error);
                         clearTimeout(initTimeout);

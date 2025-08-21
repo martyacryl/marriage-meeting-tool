@@ -95,18 +95,18 @@
         // Mock data for development
         const mockData = {
             schedule: {
-                monday: ['Morning coffee together', 'Evening walk'],
-                tuesday: ['Date night planning', 'Budget review'],
-                wednesday: ['Prayer time', 'Movie night'],
-                thursday: ['Grocery shopping', 'Cooking together'],
-                friday: ['Weekend planning', 'Game night'],
-                saturday: ['Hiking adventure', 'Dinner out'],
-                sunday: ['Church together', 'Family time']
+                Monday: ['Morning coffee together', 'Evening walk'],
+                Tuesday: ['Date night planning', 'Budget review'],
+                Wednesday: ['Prayer time', 'Movie night'],
+                Thursday: ['Grocery shopping', 'Cooking together'],
+                Friday: ['Weekend planning', 'Game night'],
+                Saturday: ['Hiking adventure', 'Dinner out'],
+                Sunday: ['Church together', 'Family time']
             },
-            todoList: ['Plan vacation', 'Fix garage door', 'Call insurance'],
-            prayerList: ['Family health', 'Career guidance', 'Relationship strength'],
+            todos: ['Plan vacation', 'Fix garage door', 'Call insurance'],
+            prayers: ['Family health', 'Career guidance', 'Relationship strength'],
             goals: ['Save for house', 'Learn new hobby', 'Travel more'],
-            groceryList: ['Milk', 'Bread', 'Eggs', 'Fruits'],
+            grocery: ['Milk', 'Bread', 'Eggs', 'Fruits'],
             unconfessedSin: ['Impatience', 'Pride'],
             weeklyWinddown: ['Reading together', 'Massage', 'Deep conversation']
         };
@@ -217,68 +217,182 @@
 
         // Main App Component
         const App = () => {
-            const [currentWeek, setCurrentWeek] = useState(new Date());
-            const [schedule, setSchedule] = useState({});
-            const [todoList, setTodoList] = useState([]);
-            const [prayerList, setPrayerList] = useState([]);
-            const [goals, setGoals] = useState([]);
-            const [groceryList, setGroceryList] = useState([]);
-            const [unconfessedSin, setUnconfessedSin] = useState([]);
-            const [weeklyWinddown, setWeeklyWinddown] = useState([]);
-            const [showAdmin, setShowAdmin] = useState(false);
+            const [currentDate, setCurrentDate] = useState(new Date());
+            const [weekData, setWeekData] = useState({});
             const [isLoading, setIsLoading] = useState(false);
-            const [error, setError] = useState(null);
+            const [lastSaved, setLastSaved] = useState(null);
+            const [authLoading, setAuthLoading] = useState(true);
+            const [user, setUser] = useState(null);
+            const [isAdmin, setIsAdmin] = useState(false);
             const [debugMode, setDebugMode] = useState(currentConfig.enableDebugLogging);
+
+            // Days of the week
+            const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+
+            // Get current week data
+            const currentWeekData = weekData[formatWeekKey(currentDate)] || {
+                schedule: { Monday: [''], Tuesday: [''], Wednesday: [''], Thursday: [''], Friday: [''], Saturday: [''], Sunday: [''] },
+                todos: [], prayers: [], goals: [], grocery: [], unconfessedSin: [], weeklyWinddown: []
+            };
+
+            // Format week key for storage
+            const formatWeekKey = (date) => {
+                const monday = getMonday(date);
+                return monday.toISOString().split('T')[0];
+            };
+
+            // Get Monday of the week
+            const getMonday = (date) => {
+                const d = new Date(date);
+                const day = d.getDay();
+                const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+                return new Date(d.setDate(diff));
+            };
+
+            // Format week display
+            const formatWeekDisplay = (date) => {
+                const monday = getMonday(date);
+                const sunday = new Date(monday);
+                sunday.setDate(monday.getDate() + 6);
+                return `${monday.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${sunday.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+            };
+
+            // Navigate between weeks
+            const navigateWeek = (direction) => {
+                const newDate = new Date(currentDate);
+                newDate.setDate(newDate.getDate() + (direction * 7));
+                setCurrentDate(newDate);
+            };
+
+            // Update schedule
+            const updateSchedule = (day, index, value) => {
+                const weekKey = formatWeekKey(currentDate);
+                setWeekData(prev => ({
+                    ...prev,
+                    [weekKey]: {
+                        ...prev[weekKey],
+                        schedule: {
+                            ...prev[weekKey]?.schedule,
+                            [day]: prev[weekKey]?.schedule?.[day]?.map((item, i) => i === index ? value : item) || ['']
+                        }
+                    }
+                }));
+                devLog(`Updated schedule for ${day}:`, value);
+            };
+
+            // Add schedule line
+            const addScheduleLine = (day) => {
+                const weekKey = formatWeekKey(currentDate);
+                setWeekData(prev => ({
+                    ...prev,
+                    [weekKey]: {
+                        ...prev[weekKey],
+                        schedule: {
+                            ...prev[weekKey]?.schedule,
+                            [day]: [...(prev[weekKey]?.schedule?.[day] || ['']), '']
+                        }
+                    }
+                }));
+                devLog(`Added schedule line for ${day}`);
+            };
+
+            // Remove schedule line
+            const removeScheduleLine = (day, index) => {
+                const weekKey = formatWeekKey(currentDate);
+                setWeekData(prev => ({
+                    ...prev,
+                    [weekKey]: {
+                        ...prev[weekKey],
+                        schedule: {
+                            ...prev[weekKey]?.schedule,
+                            [day]: prev[weekKey]?.schedule?.[day]?.filter((_, i) => i !== index) || ['']
+                        }
+                    }
+                }));
+                devLog(`Removed schedule line for ${day} at index ${index}`);
+            };
+
+            // Update list item
+            const updateListItem = (listType, index, value) => {
+                const weekKey = formatWeekKey(currentDate);
+                setWeekData(prev => ({
+                    ...prev,
+                    [weekKey]: {
+                        ...prev[weekKey],
+                        [listType]: prev[weekKey]?.[listType]?.map((item, i) => i === index ? value : item) || []
+                    }
+                }));
+                devLog(`Updated ${listType} item:`, value);
+            };
+
+            // Add list item
+            const addListItem = (listType, value) => {
+                if (!value.trim()) return;
+                const weekKey = formatWeekKey(currentDate);
+                setWeekData(prev => ({
+                    ...prev,
+                    [weekKey]: {
+                        ...prev[weekKey],
+                        [listType]: [...(prev[weekKey]?.[listType] || []), value.trim()]
+                    }
+                }));
+                devLog(`Added ${listType} item:`, value);
+            };
+
+            // Toggle list item
+            const toggleListItem = (listType, index) => {
+                const weekKey = formatWeekKey(currentDate);
+                setWeekData(prev => ({
+                    ...prev,
+                    [weekKey]: {
+                        ...prev[weekKey],
+                        [listType]: prev[weekKey]?.[listType]?.map((item, i) => i === index ? { ...item, completed: !item.completed } : item) || []
+                    }
+                }));
+                devLog(`Toggled ${listType} item at index ${index}`);
+            };
+
+            // Remove list item
+            const removeListItem = (listType, index) => {
+                const weekKey = formatWeekKey(currentDate);
+                setWeekData(prev => ({
+                    ...prev,
+                    [weekKey]: {
+                        ...prev[weekKey],
+                        [listType]: prev[weekKey]?.[listType]?.filter((_, i) => i !== index) || []
+                    }
+                }));
+                devLog(`Removed ${listType} item at index ${index}`);
+            };
 
             // Load mock data for development
             const loadMockData = useCallback(() => {
                 if (isDev && currentConfig.enableMockData) {
                     devLog('Loading mock data...');
-                    setSchedule(mockData.schedule);
-                    setTodoList(mockData.todoList);
-                    setPrayerList(mockData.prayerList);
-                    setGoals(mockData.goals);
-                    setGroceryList(mockData.groceryList);
-                    setUnconfessedSin(mockData.unconfessedSin);
-                    setWeeklyWinddown(mockData.weeklyWinddown);
-                    
-                    // Save to localStorage for development
-                    localStorage.setItem('dev_schedule', JSON.stringify(mockData.schedule));
-                    localStorage.setItem('dev_todoList', JSON.stringify(mockData.todoList));
-                    localStorage.setItem('dev_prayerList', JSON.stringify(mockData.prayerList));
-                    localStorage.setItem('dev_goals', JSON.stringify(mockData.goals));
-                    localStorage.setItem('dev_groceryList', JSON.stringify(mockData.groceryList));
-                    localStorage.setItem('dev_unconfessedSin', JSON.stringify(mockData.unconfessedSin));
-                    localStorage.setItem('dev_weeklyWinddown', JSON.stringify(mockData.weeklyWinddown));
-                    
+                    const weekKey = formatWeekKey(currentDate);
+                    setWeekData(prev => ({
+                        ...prev,
+                        [weekKey]: mockData
+                    }));
                     devLog('Mock data loaded successfully');
                 }
-            }, [isDev]);
+            }, [isDev, currentDate]);
 
             // Clear all data
             const clearAllData = useCallback(() => {
                 if (isDev) {
                     devLog('Clearing all data...');
-                    setSchedule({});
-                    setTodoList([]);
-                    setPrayerList([]);
-                    setGoals([]);
-                    setGroceryList([]);
-                    setUnconfessedSin([]);
-                    setWeeklyWinddown([]);
-                    
-                    // Clear localStorage
-                    localStorage.removeItem('dev_schedule');
-                    localStorage.removeItem('dev_todoList');
-                    localStorage.removeItem('dev_prayerList');
-                    localStorage.removeItem('dev_goals');
-                    localStorage.removeItem('dev_groceryList');
-                    localStorage.removeItem('dev_unconfessedSin');
-                    localStorage.removeItem('dev_weeklyWinddown');
-                    
+                    const weekKey = formatWeekKey(currentDate);
+                    setWeekData(prev => ({
+                        ...prev,
+                        [weekKey]: {
+                            schedule: { Monday: [''], Tuesday: [''], Wednesday: [''], Thursday: [''], Friday: [''], Saturday: [''], Sunday: [''] },
+                            todos: [], prayers: [], goals: [], grocery: [], unconfessedSin: [], weeklyWinddown: []
+                        }
+                    }));
                     devLog('All data cleared');
                 }
-            }, [isDev]);
+            }, [isDev, currentDate]);
 
             // Toggle debug logging
             const toggleDebug = useCallback(() => {
@@ -287,277 +401,120 @@
                 devLog('Debug logging toggled:', !debugMode);
             }, [debugMode]);
 
-            // Load data from localStorage (development mode)
-            useEffect(() => {
-                if (isDev) {
-                    devLog('Loading data from localStorage...');
-                    const savedSchedule = localStorage.getItem('dev_schedule');
-                    const savedTodoList = localStorage.getItem('dev_todoList');
-                    const savedPrayerList = localStorage.getItem('dev_prayerList');
-                    const savedGoals = localStorage.getItem('dev_goals');
-                    const savedGroceryList = localStorage.getItem('dev_groceryList');
-                    const savedUnconfessedSin = localStorage.getItem('dev_unconfessedSin');
-                    const savedWeeklyWinddown = localStorage.getItem('dev_weeklyWinddown');
-
-                    if (savedSchedule) setSchedule(JSON.parse(savedSchedule));
-                    if (savedTodoList) setTodoList(JSON.parse(savedTodoList));
-                    if (savedPrayerList) setPrayerList(JSON.parse(savedPrayerList));
-                    if (savedGoals) setGoals(JSON.parse(savedGoals));
-                    if (savedGroceryList) setGroceryList(JSON.parse(savedGroceryList));
-                    if (savedUnconfessedSin) setUnconfessedSin(JSON.parse(savedUnconfessedSin));
-                    if (savedWeeklyWinddown) setWeeklyWinddown(JSON.parse(savedWeeklyWinddown));
-                    
-                    devLog('Data loaded from localStorage');
-                }
-            }, [isDev]);
-
             // Save data to localStorage (development mode)
             useEffect(() => {
                 if (isDev) {
                     devLog('Saving data to localStorage...');
-                    localStorage.setItem('dev_schedule', JSON.stringify(schedule));
-                    localStorage.setItem('dev_todoList', JSON.stringify(todoList));
-                    localStorage.setItem('dev_prayerList', JSON.stringify(prayerList));
-                    localStorage.setItem('dev_goals', JSON.stringify(goals));
-                    localStorage.setItem('dev_groceryList', JSON.stringify(groceryList));
-                    localStorage.setItem('dev_unconfessedSin', JSON.stringify(unconfessedSin));
-                    localStorage.setItem('dev_weeklyWinddown', JSON.stringify(weeklyWinddown));
+                    const weekKey = formatWeekKey(currentDate);
+                    localStorage.setItem(`dev_weekData_${weekKey}`, JSON.stringify(currentWeekData));
                 }
-            }, [schedule, todoList, prayerList, goals, groceryList, unconfessedSin, weeklyWinddown, isDev]);
+            }, [currentWeekData, isDev, currentDate]);
 
-            // Week navigation
-            const goToPreviousWeek = () => {
-                const newWeek = new Date(currentWeek);
-                newWeek.setDate(newWeek.getDate() - 7);
-                setCurrentWeek(newWeek);
-                devLog('Navigated to previous week:', newWeek);
-            };
-
-            const goToNextWeek = () => {
-                const newWeek = new Date(currentWeek);
-                newWeek.setDate(newWeek.getDate() + 7);
-                setCurrentWeek(newWeek);
-                devLog('Navigated to next week:', newWeek);
-            };
-
-            // Get week dates
-            const getWeekDates = (date) => {
-                const start = new Date(date);
-                start.setDate(start.getDate() - start.getDay());
-                
-                const dates = [];
-                for (let i = 0; i < 7; i++) {
-                    const day = new Date(start);
-                    day.setDate(start.getDate() + i);
-                    dates.push(day);
+            // Load data from localStorage (development mode)
+            useEffect(() => {
+                if (isDev) {
+                    devLog('Loading data from localStorage...');
+                    const weekKey = formatWeekKey(currentDate);
+                    const savedData = localStorage.getItem(`dev_weekData_${weekKey}`);
+                    if (savedData) {
+                        setWeekData(prev => ({
+                            ...prev,
+                            [weekKey]: JSON.parse(savedData)
+                        }));
+                        devLog('Data loaded from localStorage');
+                    }
                 }
-                return dates;
-            };
+            }, [isDev, currentDate]);
 
-            const weekDates = getWeekDates(currentWeek);
-
-            // Add item to list
-            const addToList = (listName, item) => {
-                if (!item.trim()) return;
-                
-                devLog(`Adding item to ${listName}:`, item);
-                
-                switch (listName) {
-                    case 'todo':
-                        setTodoList(prev => [...prev, item.trim()]);
-                        break;
-                    case 'prayer':
-                        setPrayerList(prev => [...prev, item.trim()]);
-                        break;
-                    case 'goals':
-                        setGoals(prev => [...prev, item.trim()]);
-                        break;
-                    case 'grocery':
-                        setGroceryList(prev => [...prev, item.trim()]);
-                        break;
-                    case 'unconfessedSin':
-                        setUnconfessedSin(prev => [...prev, item.trim()]);
-                        break;
-                    case 'weeklyWinddown':
-                        setWeeklyWinddown(prev => [...prev, item.trim()]);
-                        break;
+            // Initialize data
+            useEffect(() => {
+                if (isDev) {
+                    devLog('Initializing development data...');
+                    const weekKey = formatWeekKey(currentDate);
+                    if (!weekData[weekKey]) {
+                        setWeekData(prev => ({
+                            ...prev,
+                            [weekKey]: {
+                                schedule: { Monday: [''], Tuesday: [''], Wednesday: [''], Thursday: [''], Friday: [''], Saturday: [''], Sunday: [''] },
+                                todos: [], prayers: [], goals: [], grocery: [], unconfessedSin: [], weeklyWinddown: []
+                            }
+                        }));
+                    }
                 }
-            };
+            }, [isDev, currentDate]);
 
-            // Remove item from list
-            const removeFromList = (listName, index) => {
-                devLog(`Removing item from ${listName} at index:`, index);
+            // Initialize authentication
+            useEffect(() => {
+                const initializeAuth = async () => {
+                    try {
+                        devLog('Initializing authentication...');
+                        const { data: { user }, error } = await supabase.auth.getUser();
+                        
+                        if (error) {
+                            devLog('Error getting user:', error);
+                            setAuthLoading(false);
+                            return;
+                        }
+                        
+                        if (user) {
+                            devLog('User found:', user.email);
+                            setUser(user);
+                            const isUserAdmin = user.user_metadata?.is_admin === true;
+                            setIsAdmin(isUserAdmin);
+                        } else {
+                            devLog('No user found');
+                        }
+                        
+                        setAuthLoading(false);
+                    } catch (error) {
+                        devLog('Auth initialization error:', error);
+                        setAuthLoading(false);
+                    }
+                };
                 
-                switch (listName) {
-                    case 'todo':
-                        setTodoList(prev => prev.filter((_, i) => i !== index));
-                        break;
-                    case 'prayer':
-                        setPrayerList(prev => prev.filter((_, i) => i !== index));
-                        break;
-                    case 'goals':
-                        setGoals(prev => prev.filter((_, i) => i !== index));
-                        break;
-                    case 'grocery':
-                        setGroceryList(prev => prev.filter((_, i) => i !== index));
-                        break;
-                    case 'unconfessedSin':
-                        setUnconfessedSin(prev => prev.filter((_, i) => i !== index));
-                        break;
-                    case 'weeklyWinddown':
-                        setWeeklyWinddown(prev => prev.filter((_, i) => i !== index));
-                        break;
-                }
-            };
+                initializeAuth();
+            }, []);
 
-            // Add schedule item
-            const addScheduleItem = (day, item) => {
-                if (!item.trim()) return;
-                
-                devLog(`Adding schedule item for ${day}:`, item);
-                setSchedule(prev => ({
-                    ...prev,
-                    [day]: [...(prev[day] || []), item.trim()]
-                }));
-            };
-
-            // Remove schedule item
-            const removeScheduleItem = (day, index) => {
-                devLog(`Removing schedule item from ${day} at index:`, index);
-                setSchedule(prev => ({
-                    ...prev,
-                    [day]: prev[day].filter((_, i) => i !== index)
-                }));
-            };
-
-            // List component
-            const ListSection = ({ title, items, onAdd, onRemove, placeholder, className = "" }) => (
-                <div className={`modern-card p-6 ${className}`}>
-                    <h3 className="text-lg font-semibold mb-4 text-gray-800">{title}</h3>
-                    <div className="space-y-2 mb-4">
-                        {items.map((item, index) => (
-                            <div key={index} className="flex items-center justify-between bg-white p-3 rounded-lg border">
-                                <span className="text-gray-700">{item}</span>
-                                <button
-                                    onClick={() => onRemove(index)}
-                                    className="text-red-500 hover:text-red-700 transition-colors"
-                                >
-                                    <TrashIcon />
-                                </button>
-                            </div>
-                        ))}
+            // Loading screen
+            if (authLoading) {
+                return (
+                    <div className="min-h-screen flex items-center justify-center">
+                        <div className="text-center">
+                            <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-green-500 mx-auto"></div>
+                            <p className="mt-4 text-gray-600">Loading...</p>
+                        </div>
                     </div>
-                    <div className="flex gap-2">
-                        <input
-                            type="text"
-                            placeholder={placeholder}
-                            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-                            onKeyPress={(e) => {
-                                if (e.key === 'Enter') {
-                                    onAdd(e.target.value);
-                                    e.target.value = '';
-                                }
-                            }}
-                        />
-                        <button
-                            onClick={() => {
-                                const input = document.querySelector(`input[placeholder="${placeholder}"]`);
-                                if (input && input.value.trim()) {
-                                    onAdd(input.value);
-                                    input.value = '';
-                                }
-                            }}
-                            className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
-                        >
-                            <PlusIcon />
-                        </button>
-                    </div>
-                </div>
-            );
+                );
+            }
 
-            // Schedule component
-            const ScheduleSection = () => (
-                <div className="modern-card p-6">
-                    <div className="flex items-center justify-between mb-6">
-                        <h3 className="text-xl font-semibold text-gray-800">Weekly Schedule</h3>
-                        <div className="flex items-center gap-2">
+            // Not authenticated
+            if (!user) {
+                return (
+                    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-100 to-green-50">
+                        <div className="bg-white p-8 rounded-xl shadow-lg max-w-md w-full">
+                            <h1 className="text-2xl font-bold text-center text-gray-800 mb-6">
+                                Marriage Meeting Tool
+                            </h1>
+                            <p className="text-gray-600 text-center mb-6">
+                                Please sign in to access your marriage planning tools.
+                            </p>
                             <button
-                                onClick={goToPreviousWeek}
-                                className="p-2 text-gray-600 hover:text-gray-800 transition-colors"
+                                onClick={() => supabase.auth.signInWithOAuth({ provider: 'google' })}
+                                className="w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-3 px-4 rounded-lg transition-colors"
                             >
-                                <ChevronLeftIcon />
-                            </button>
-                            <span className="text-sm text-gray-600">
-                                {weekDates[0].toLocaleDateString()} - {weekDates[6].toLocaleDateString()}
-                            </span>
-                            <button
-                                onClick={goToNextWeek}
-                                className="p-2 text-gray-600 hover:text-gray-800 transition-colors"
-                            >
-                                <ChevronRightIcon />
+                                Sign In with Google
                             </button>
                         </div>
                     </div>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-7 gap-4">
-                        {weekDates.map((date, index) => {
-                            const dayName = date.toLocaleDateString('en-US', { weekday: 'long' });
-                            const dayKey = dayName.toLowerCase();
-                            const dayItems = schedule[dayKey] || [];
-                            
-                            return (
-                                <div key={index} className="bg-white p-4 rounded-lg border">
-                                    <h4 className="font-semibold text-gray-800 mb-3 text-center">{dayName}</h4>
-                                    <div className="space-y-2 mb-3">
-                                        {dayItems.map((item, itemIndex) => (
-                                            <div key={itemIndex} className="flex items-center justify-between bg-gray-50 p-2 rounded text-sm">
-                                                <span className="text-gray-700">{item}</span>
-                                                <button
-                                                    onClick={() => removeScheduleItem(dayKey, itemIndex)}
-                                                    className="text-red-500 hover:text-red-700 text-xs"
-                                                >
-                                                    ×
-                                                </button>
-                                            </div>
-                                        ))}
-                                    </div>
-                                    <div className="flex gap-1">
-                                        <input
-                                            type="text"
-                                            placeholder="Add activity..."
-                                            className="flex-1 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-green-500"
-                                            onKeyPress={(e) => {
-                                                if (e.key === 'Enter') {
-                                                    addScheduleItem(dayKey, e.target.value);
-                                                    e.target.value = '';
-                                                }
-                                            }}
-                                        />
-                                        <button
-                                            onClick={() => {
-                                                const input = e.target.previousElementSibling;
-                                                if (input && input.value.trim()) {
-                                                    addScheduleItem(dayKey, input.value);
-                                                    input.value = '';
-                                                }
-                                            }}
-                                            className="px-2 py-1 bg-green-500 text-white rounded text-xs hover:bg-green-600 transition-colors"
-                                        >
-                                            <PlusIcon />
-                                        </button>
-                                    </div>
-                                </div>
-                            );
-                        })}
-                    </div>
-                </div>
-            );
+                );
+            }
 
             return (
                 <div className="min-h-screen">
                     <DevBanner />
                     
                     <div className="container mx-auto px-4 py-8">
+                        {/* Header */}
                         <div className="text-center mb-8">
                             <h1 className="text-4xl font-bold text-gray-800 mb-2">
                                 Marriage Meeting Tool
@@ -567,62 +524,162 @@
                             </p>
                         </div>
 
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-                            <ScheduleSection />
+                        {/* Week Navigation */}
+                        <div className="flex items-center justify-center gap-6 mb-8">
+                            <button 
+                                onClick={() => navigateWeek(-1)}
+                                className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors shadow-sm"
+                            >
+                                <ChevronLeftIcon />
+                                Previous Week
+                            </button>
                             
-                            <div className="space-y-6">
-                                <ListSection
-                                    title="To-Do List"
-                                    items={todoList}
-                                    onAdd={(item) => addToList('todo', item)}
-                                    onRemove={(index) => removeFromList('todo', index)}
-                                    placeholder="Add task..."
-                                />
-                                
-                                <ListSection
-                                    title="Prayer List"
-                                    items={prayerList}
-                                    onAdd={(item) => addToList('prayer', item)}
-                                    onRemove={(index) => removeFromList('prayer', index)}
-                                    placeholder="Add prayer request..."
-                                />
+                            <div className="text-center">
+                                <h2 className="text-xl font-semibold text-gray-800">
+                                    {formatWeekDisplay(currentDate)}
+                                </h2>
+                                <p className="text-sm text-gray-500 mt-1">
+                                    Week of {getMonday(currentDate).toLocaleDateString('en-US', { weekday: 'long' })}
+                                </p>
+                            </div>
+                            
+                            <button 
+                                onClick={() => navigateWeek(1)}
+                                className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors shadow-sm"
+                            >
+                                Next Week
+                                <ChevronRightIcon />
+                            </button>
+                        </div>
+
+                        {/* Weekly Schedule Section */}
+                        <div className="section-card rounded-xl p-6 mb-8">
+                            <div className="text-center mb-6">
+                                <h2 className="section-header text-2xl font-bold mb-2">
+                                    📅 Weekly Schedule
+                                </h2>
+                                <p className="text-gray-600">
+                                    Plan your week together, day by day
+                                </p>
+                            </div>
+
+                            <div className="section-divider"></div>
+
+                            <div className="flex flex-wrap justify-center gap-8 max-w-6xl mx-auto">
+                                {days.map((day) => {
+                                    const dayItems = currentWeekData.schedule?.[day] || [''];
+                                    return (
+                                        <div key={day} className="w-full sm:w-[calc(50%-1rem)] lg:w-[calc(33.333%-1.33rem)] xl:w-[calc(25%-1.5rem)]">
+                                            <ScheduleDay 
+                                                day={day} 
+                                                items={dayItems}
+                                                onUpdate={updateSchedule}
+                                                onAddLine={() => addScheduleLine(day)}
+                                                onRemoveLine={(index) => removeScheduleLine(day, index)}
+                                            />
+                                        </div>
+                                    );
+                                })}
+                            </div>
+
+                            <div className="section-divider mt-6"></div>
+                            <div className="text-center">
+                                <p className="text-sm text-gray-500">
+                                    Click in any day to add commitments, appointments, or notes
+                                </p>
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-                            <ListSection
-                                title="Goals & Dreams"
-                                items={goals}
-                                onAdd={(item) => addToList('goals', item)}
-                                onRemove={(index) => removeFromList('goals', index)}
-                                placeholder="Add goal..."
+                        {/* Lists Section */}
+                        <div className="grid grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 gap-8">
+                            <ListSection 
+                                title="✅ To-Do List" 
+                                subtitle="Tasks and action items"
+                                listType="todos" 
+                                items={currentWeekData.todos || []} 
+                                onUpdate={updateListItem}
+                                onAdd={addListItem}
+                                onToggle={toggleListItem}
+                                onRemove={removeListItem}
+                                placeholder="Add a new task..."
+                                color="blue"
                             />
                             
-                            <ListSection
-                                title="Grocery List"
-                                items={groceryList}
-                                onAdd={(item) => addToList('grocery', item)}
-                                onRemove={(index) => removeFromList('grocery', index)}
-                                placeholder="Add item..."
+                            <ListSection 
+                                title="🙏 Prayer List" 
+                                subtitle="Prayers and requests"
+                                listType="prayers" 
+                                items={currentWeekData.prayers || []} 
+                                onUpdate={updateListItem}
+                                onAdd={addListItem}
+                                onToggle={toggleListItem}
+                                onRemove={removeListItem}
+                                placeholder="Add a prayer request..."
+                                color="purple"
+                            />
+                            
+                            <ListSection 
+                                title="🎯 Goals" 
+                                subtitle="Dreams and aspirations"
+                                listType="goals" 
+                                items={currentWeekData.goals || []} 
+                                onUpdate={updateListItem}
+                                onAdd={addListItem}
+                                onToggle={toggleListItem}
+                                onRemove={removeListItem}
+                                placeholder="Add a new goal..."
+                                color="green"
+                            />
+                            
+                            <ListSection 
+                                title="🛒 Grocery List" 
+                                subtitle="Shopping and supplies"
+                                listType="grocery" 
+                                items={currentWeekData.grocery || []} 
+                                onUpdate={updateListItem}
+                                onAdd={addListItem}
+                                onToggle={toggleListItem}
+                                onRemove={removeListItem}
+                                placeholder="Add grocery item..."
+                                color="orange"
+                            />
+                            
+                            <ListSection 
+                                title="💭 Unconfessed Sin" 
+                                subtitle="Accountability and grace"
+                                listType="unconfessedSin" 
+                                items={currentWeekData.unconfessedSin || []} 
+                                onUpdate={updateListItem}
+                                onAdd={addListItem}
+                                onToggle={toggleListItem}
+                                onRemove={removeListItem}
+                                placeholder="Add for accountability..."
+                                color="red"
+                            />
+                            
+                            <ListSection 
+                                title="🌙 Weekly Winddown" 
+                                subtitle="Weekly relaxation plan together"
+                                listType="weeklyWinddown" 
+                                items={currentWeekData.weeklyWinddown || []} 
+                                onUpdate={updateListItem}
+                                onAdd={addListItem}
+                                onToggle={toggleListItem}
+                                onRemove={removeListItem}
+                                placeholder="Add relaxation activity..."
+                                color="blue"
                             />
                         </div>
 
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                            <ListSection
-                                title="Unconfessed Sin"
-                                items={unconfessedSin}
-                                onAdd={(item) => addToList('unconfessedSin', item)}
-                                onRemove={(index) => removeFromList('unconfessedSin', index)}
-                                placeholder="Add item..."
-                            />
-                            
-                            <ListSection
-                                title="Weekly Winddown"
-                                items={weeklyWinddown}
-                                onAdd={(item) => addToList('weeklyWinddown', item)}
-                                onRemove={(index) => removeFromList('weeklyWinddown', index)}
-                                placeholder="Add activity..."
-                            />
+                        {/* Footer */}
+                        <div className="mt-12 text-center">
+                            <div className="section-divider"></div>
+                            <p className="text-gray-500 text-sm">
+                                Built with ❤️ for strengthening marriages through intentional planning
+                            </p>
+                            <p className="text-gray-400 text-xs mt-2">
+                                All changes sync in real-time
+                            </p>
                         </div>
                     </div>
 
@@ -631,6 +688,218 @@
                         onClearData={clearAllData}
                         onToggleDebug={toggleDebug}
                     />
+                </div>
+            );
+        };
+
+        // Schedule Day Component with local state for inputs
+        const ScheduleDay = ({ day, items, onUpdate, onAddLine, onRemoveLine }) => {
+            const [localInputs, setLocalInputs] = useState({});
+
+            // Initialize local inputs when items change
+            useEffect(() => {
+                const newLocalInputs = {};
+                items.forEach((item, index) => {
+                    newLocalInputs[index] = item;
+                });
+                setLocalInputs(newLocalInputs);
+            }, [items]);
+
+            const handleInputChange = (index, value) => {
+                setLocalInputs(prev => ({ ...prev, [index]: value }));
+            };
+
+            const handleInputBlur = (index) => {
+                const localValue = localInputs[index];
+                const currentItem = items[index];
+                if (localValue !== undefined && currentItem !== localValue) {
+                    onUpdate(day, index, localValue);
+                }
+            };
+
+            const autoResize = (e) => {
+                e.target.style.height = 'auto';
+                e.target.style.height = e.target.scrollHeight + 'px';
+            };
+
+            const dayColors = {
+                Monday: 'from-blue-50 to-blue-100',
+                Tuesday: 'from-purple-50 to-purple-100',
+                Wednesday: 'from-green-50 to-green-100',
+                Thursday: 'from-yellow-50 to-yellow-100',
+                Friday: 'from-pink-50 to-pink-100',
+                Saturday: 'from-indigo-50 to-indigo-100',
+                Sunday: 'from-red-50 to-red-100'
+            };
+
+            return (
+                <div className={`bg-gradient-to-br ${dayColors[day]} rounded-lg p-4 border border-gray-200 shadow-sm`}>
+                    <h3 className="font-semibold text-gray-800 mb-3 text-center">{day}</h3>
+                    
+                    <div className="space-y-2">
+                        {items.map((item, index) => (
+                            <div key={index} className="relative">
+                                <textarea
+                                    value={localInputs[index] || ''}
+                                    onChange={(e) => handleInputChange(index, e.target.value)}
+                                    onBlur={() => handleInputBlur(index)}
+                                    onInput={autoResize}
+                                    placeholder="Add activity..."
+                                    className="w-full p-2 text-sm border border-gray-300 rounded resize-none focus:outline-none focus:ring-2 focus:ring-green-500"
+                                    rows="1"
+                                />
+                                {items.length > 1 && (
+                                    <button
+                                        onClick={() => onRemoveLine(index)}
+                                        className="absolute top-1 right-1 text-red-500 hover:text-red-700 text-xs"
+                                    >
+                                        ×
+                                    </button>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                    
+                    <button
+                        onClick={() => onAddLine()}
+                        className="w-full mt-3 p-2 text-sm bg-white border border-gray-300 rounded hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
+                    >
+                        <PlusIcon />
+                        Add Line
+                    </button>
+                </div>
+            );
+        };
+
+        // List Section Component
+        const ListSection = ({ title, subtitle, listType, items, onUpdate, onAdd, onToggle, onRemove, placeholder, color }) => {
+            const [newItem, setNewItem] = useState('');
+            const [editingIndex, setEditingIndex] = useState(null);
+            const [editValue, setEditValue] = useState('');
+
+            const colorClasses = {
+                blue: 'border-blue-200 bg-blue-50',
+                purple: 'border-purple-200 bg-purple-50',
+                green: 'border-green-200 bg-green-50',
+                orange: 'border-orange-200 bg-orange-50',
+                red: 'border-red-200 bg-red-50'
+            };
+
+            const handleAdd = () => {
+                if (newItem.trim()) {
+                    onAdd(listType, newItem.trim());
+                    setNewItem('');
+                }
+            };
+
+            const handleEdit = (index) => {
+                setEditingIndex(index);
+                setEditValue(items[index]?.text || items[index] || '');
+            };
+
+            const handleSaveEdit = () => {
+                if (editValue.trim()) {
+                    onUpdate(listType, editingIndex, editValue.trim());
+                    setEditingIndex(null);
+                    setEditValue('');
+                }
+            };
+
+            const handleCancelEdit = () => {
+                setEditingIndex(null);
+                setEditValue('');
+            };
+
+            return (
+                <div className="modern-card p-6">
+                    <div className="text-center mb-4">
+                        <h3 className="text-lg font-semibold text-gray-800 mb-1">{title}</h3>
+                        <p className="text-sm text-gray-600">{subtitle}</p>
+                    </div>
+                    
+                    <div className="space-y-2 mb-4">
+                        {items.map((item, index) => {
+                            const itemText = typeof item === 'object' ? item.text : item;
+                            const isCompleted = typeof item === 'object' ? item.completed : false;
+                            
+                            return (
+                                <div key={index} className={`flex items-center justify-between p-3 rounded-lg border ${colorClasses[color]}`}>
+                                    {editingIndex === index ? (
+                                        <div className="flex-1 flex gap-2">
+                                            <input
+                                                type="text"
+                                                value={editValue}
+                                                onChange={(e) => setEditValue(e.target.value)}
+                                                className="flex-1 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-green-500"
+                                                onKeyPress={(e) => e.key === 'Enter' && handleSaveEdit()}
+                                            />
+                                            <button
+                                                onClick={handleSaveEdit}
+                                                className="px-2 py-1 bg-green-500 text-white text-xs rounded hover:bg-green-600"
+                                            >
+                                                Save
+                                            </button>
+                                            <button
+                                                onClick={handleCancelEdit}
+                                                className="px-2 py-1 bg-gray-500 text-white text-xs rounded hover:bg-gray-600"
+                                            >
+                                                Cancel
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <div className="flex items-center gap-2 flex-1">
+                                                <button
+                                                    onClick={() => onToggle(listType, index)}
+                                                    className={`w-4 h-4 rounded border-2 flex items-center justify-center ${
+                                                        isCompleted 
+                                                            ? 'bg-green-500 border-green-500 text-white' 
+                                                            : 'border-gray-300'
+                                                    }`}
+                                                >
+                                                    {isCompleted && '✓'}
+                                                </button>
+                                                <span className={`text-sm ${isCompleted ? 'line-through text-gray-500' : 'text-gray-700'}`}>
+                                                    {itemText}
+                                                </span>
+                                            </div>
+                                            <div className="flex gap-1">
+                                                <button
+                                                    onClick={() => handleEdit(index)}
+                                                    className="text-blue-500 hover:text-blue-700 text-xs"
+                                                >
+                                                    Edit
+                                                </button>
+                                                <button
+                                                    onClick={() => onRemove(listType, index)}
+                                                    className="text-red-500 hover:text-red-700 text-xs"
+                                                >
+                                                    ×
+                                                </button>
+                                            </div>
+                                        </>
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
+                    
+                    <div className="flex gap-2">
+                        <input
+                            type="text"
+                            value={newItem}
+                            onChange={(e) => setNewItem(e.target.value)}
+                            placeholder={placeholder}
+                            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                            onKeyPress={(e) => e.key === 'Enter' && handleAdd()}
+                        />
+                        <button
+                            onClick={handleAdd}
+                            className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
+                        >
+                            <PlusIcon />
+                        </button>
+                    </div>
                 </div>
             );
         };

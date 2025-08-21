@@ -5,25 +5,25 @@ const config = {
   // Development Environment
   development: {
     supabaseUrl: 'https://gkmclzlgrcmqocfoxkui.supabase.co',
-    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdrbWNsemxncmNtcW9jZm94a3VpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU2MDYzNzEsImV4cCI6MjA3MTE4MjM3MX0.ovOR0iMGao5qvrAThrx8KucLyTctiRkVbNJvYdPEyk0',
-    serviceRoleKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdrbWNsemxncmNtcW9jZm94a3VpIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1NTYwNjM3MSwiZXhwIjoyMDcxMTgyMzcxfQ.Iz1__lQGZmxAiiMlildaypRObXBUzGu72DznKsGxTWk',
+    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpydXRxZGVzdXJuYW5zeWZ5ZGJmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU1NTA4MzgsImV4cCI6MjA3MTEyNjgzOH0.G-sTw0eF-tQEcqvbaz-hSM2h0KVr2NMOYMq4x0iwIIc',
+    serviceRoleKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpydXRxZGVzdXJuYW5zeWZ5ZGJmIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1NTU1MDgzOCwiZXhwIjoyMDcxMTI2ODM4fQ.DZFYORSXw99L7SmqoB-KHGf-F4RpTO99PC2wLCA1RBA',
     tableName: 'marriage_meetings_dev', // Development table
     enableDebugLogging: true,
     enableMockData: true,
     environment: 'development',
-    netlifyUrl: 'https://your-dev-app.netlify.app' // TODO: Replace with your actual dev Netlify URL
+    netlifyUrl: 'https://stjohnmarriagemeetingsdev.netlify.app' // TODO: Replace with your actual dev Netlify URL
   },
 
   // Production Environment
   production: {
     supabaseUrl: 'https://gkmclzlgrcmqocfoxkui.supabase.co',
-    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdrbWNsemxncmNtcW9jZm94a3VpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU2MDYzNzEsImV4cCI6MjA3MTE4MjM3MX0.ovOR0iMGao5qvrAThrx8KucLyTctiRkVbNJvYdPEyk0',
-    serviceRoleKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdrbWNsemxncmNtcW9jZm94a3VpIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1NTYwNjM3MSwiZXhwIjoyMDcxMTgyMzcxfQ.Iz1__lQGZmxAiiMlildaypRObXBUzGu72DznKsGxTWk',
+    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpydXRxZGVzdXJuYW5zeWZ5ZGJmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU1NTA4MzgsImV4cCI6MjA3MTEyNjgzOH0.G-sTw0eF-tQEcqvbaz-hSM2h0KVr2NMOYMq4x0iwIIc',
+    serviceRoleKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpydXRxZGVzdXJuYW5zeWZ5ZGJmIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1NTU1MDgzOCwiZXhwIjoyMDcxMTI2ODM4fQ.DZFYORSXw99L7SmqoB-KHGf-F4RpTO99PC2wLCA1RBA',
     tableName: 'marriage_meetings', // Production table
     enableDebugLogging: false,
     enableMockData: false,
     environment: 'production',
-    netlifyUrl: 'https://your-prod-app.netlify.app' // TODO: Replace with your actual prod Netlify URL
+    netlifyUrl: 'https://stjohnmarriagemeetings.netlify.app/' // TODO: Replace with your actual prod Netlify URL
   }
 };
 

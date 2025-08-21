@@ -13,9 +13,21 @@
         import('https://unpkg.com/@neondatabase/serverless@0.9.0/dist/index.js')
             .then(module => {
                 console.log('✅ [NEON] Module loaded successfully:', module);
-                if (module.default) {
+                console.log('🔍 [NEON] Module structure:', {
+                    hasDefault: !!module.default,
+                    defaultType: typeof module.default,
+                    keys: Object.keys(module)
+                });
+                
+                if (module.default && typeof module.default === 'function') {
                     window.neon = module.default;
-                    console.log('✅ [NEON] Client assigned to window.neon');
+                    console.log('✅ [NEON] Client assigned to window.neon as function');
+                } else if (module.default) {
+                    window.neon = module.default;
+                    console.log('✅ [NEON] Client assigned to window.neon as object');
+                } else {
+                    console.log('⚠️ [NEON] No default export found, using entire module');
+                    window.neon = module;
                 }
             })
             .catch(error => {
@@ -99,14 +111,20 @@
             console.log('🔍 [NEON] Available globals:', Object.keys(window).filter(k => k.includes('neon') || k.includes('Neon')));
             
             try {
-                // Check if Neon client is available
-                if (window.neon) {
-                    console.log('✅ [NEON] Client found, creating connection...');
+                // Check if Neon client is available and properly structured
+                if (window.neon && typeof window.neon === 'function') {
+                    console.log('✅ [NEON] Client found as function, creating connection...');
                     const sqlClient = window.neon(connectionString);
                     const result = await sqlClient(sql);
                     console.log('✅ [NEON] Query successful:', result);
                     return result;
-                } else if (window.Neon) {
+                } else if (window.neon && typeof window.neon.default === 'function') {
+                    console.log('✅ [NEON] Client found as module.default, creating connection...');
+                    const sqlClient = window.neon.default(connectionString);
+                    const result = await sqlClient(sql);
+                    console.log('✅ [NEON] Query successful:', result);
+                    return result;
+                } else if (window.Neon && typeof window.Neon === 'function') {
                     console.log('✅ [NEON] Alternative client found, creating connection...');
                     const sqlClient = window.Neon(connectionString);
                     const result = await sqlClient(sql);
@@ -116,16 +134,21 @@
                     console.log('⚠️ [NEON] Client not available, checking CDN...');
                     
                     // Try to access the Neon client from the CDN
-                    const neonModule = await import('https://unpkg.com/@neondatabase/serverless@0.9.0/dist/index.js');
-                    console.log('📦 [NEON] Module loaded:', neonModule);
-                    
-                    if (neonModule.default) {
-                        const sqlClient = neonModule.default(connectionString);
-                        const result = await sqlClient(sql);
-                        console.log('✅ [NEON] Query successful via module:', result);
-                        return result;
-                    } else {
-                        throw new Error('Neon client not available');
+                    try {
+                        const neonModule = await import('https://unpkg.com/@neondatabase/serverless@0.9.0/dist/index.js');
+                        console.log('📦 [NEON] Module loaded:', neonModule);
+                        
+                        if (neonModule.default && typeof neonModule.default === 'function') {
+                            const sqlClient = neonModule.default(connectionString);
+                            const result = await sqlClient(sql);
+                            console.log('✅ [NEON] Query successful via module:', result);
+                            return result;
+                        } else {
+                            throw new Error('Neon client not available as function');
+                        }
+                    } catch (importError) {
+                        console.log('⚠️ [NEON] Import failed, falling back to localStorage...');
+                        throw importError;
                     }
                 }
             } catch (error) {

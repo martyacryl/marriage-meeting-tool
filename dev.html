@@ -267,7 +267,8 @@
                     }
                 }
                 
-                const result = await neon('test-connection', 'SELECT 1 as test');
+                // Use the real connection string for testing
+                const result = await neon(neonConnectionString, 'SELECT 1 as test');
                 console.log('✅ [NEON] Connection test successful:', result);
                 
                 if (isNeonAvailable) {

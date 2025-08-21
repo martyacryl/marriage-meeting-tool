@@ -90,41 +90,27 @@
                 const weekMatch = sql.match(/week_key\s*=\s*'([^']+)'/);
                 const weekKey = weekMatch ? weekMatch[1] : '2025-08-18';
                 
-                // Return mock data for loading
+                // Return empty data structure for user to fill in
                 return [{
                     id: 1,
                     week_key: weekKey,
                     user_id: 'dev-user-123',
                     data_content: {
                         schedule: {
-                            Monday: [`${weekKey} - Morning prayer`, `${weekKey} - Work meeting`],
-                            Tuesday: [`${weekKey} - Grocery shopping`, `${weekKey} - Date night`],
-                            Wednesday: [`${weekKey} - Church service`],
-                            Thursday: [`${weekKey} - Family dinner`],
-                            Friday: [`${weekKey} - Weekend planning`],
-                            Saturday: [`${weekKey} - Relaxation day`],
-                            Sunday: [`${weekKey} - Church and rest`]
+                            Monday: [''],
+                            Tuesday: [''],
+                            Wednesday: [''],
+                            Thursday: [''],
+                            Friday: [''],
+                            Saturday: [''],
+                            Sunday: ['']
                         },
-                        todos: [
-                            { id: 1, text: `${weekKey} - Plan next week`, completed: false },
-                            { id: 2, text: `${weekKey} - Review budget`, completed: false }
-                        ],
-                        prayers: [
-                            { id: 1, text: `${weekKey} - Thankful for our marriage`, completed: false },
-                            { id: 2, text: `${weekKey} - Pray for family health`, completed: false }
-                        ],
-                        goals: [
-                            { id: 1, text: `${weekKey} - Read Bible together daily`, completed: false },
-                            { id: 2, text: `${weekKey} - Exercise 3 times per week`, completed: false }
-                        ],
-                        grocery: [
-                            { id: 1, text: `${weekKey} - Milk`, completed: false },
-                            { id: 2, text: `${weekKey} - Bread`, completed: false }
-                        ],
+                        todos: [],
+                        prayers: [],
+                        goals: [],
+                        grocery: [],
                         unconfessedSin: [],
-                        weeklyWinddown: [
-                            { id: 1, text: `${weekKey} - Movie night`, completed: false }
-                        ]
+                        weeklyWinddown: []
                     }
                 }];
             } else if (sql.toLowerCase().includes('insert') || sql.toLowerCase().includes('update')) {

@@ -86,12 +86,6 @@
         
         const neon = window.neon;
         
-
-        const serviceRoleKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdrbWNsemxncmNtcW9jZm94a3VpIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1NTYwNjM3MSwiZXhwIjoyMDcxMTgyMzcxfQ.Iz1__lQGZmxAiiMlildaypRObXBUzGu72DznKsGxTWk';
-        
-        const supabaseKey = USE_SERVICE_ROLE_KEY ? serviceRoleKey : anonKey;
-        const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
-        
         // DEVELOPMENT TABLE NAME
         const TABLE_NAME = 'marriage_meetings_dev';
         
@@ -179,20 +173,20 @@
                 setError('');
 
                 try {
-                    const { data, error } = await supabase.auth.signInWithPassword({
-                        email,
-                        password
-                    });
-
-                    if (error) throw error;
-
+                    // Simple mock authentication for development with Neon
+                    const mockUser = {
+                        id: 'dev-user-123',
+                        email: email,
+                        user_metadata: { is_admin: false }
+                    };
+                    
                     // Check if user is admin (you can set this in user metadata)
-                    const isUserAdmin = data.user?.user_metadata?.is_admin === true;
+                    const isUserAdmin = email.includes('admin') || email.includes('stjohn');
                     
                     if (isUserAdmin) {
-                        onAdminSignIn(data.user);
+                        onAdminSignIn(mockUser);
                     } else {
-                        onSignIn(data.user);
+                        onSignIn(mockUser);
                     }
                 } catch (error) {
                     setError(error.message);
@@ -277,28 +271,23 @@
                     console.log('🔄 [DEV] Using table:', TABLE_NAME);
                     
                     try {
-                        // Try to load from database first
-                        const { data, error } = await supabase
-                            .from(TABLE_NAME)
-                            .select('*')
-                            .eq('week_key', targetWeekKey)
-                            .eq('user_id', user.id);
-
-                        if (error) {
-                            console.log('⚠️ [DEV] Database load error:', error);
-                        } else if (data && data.length > 0) {
-                            console.log('✅ [DEV] Loaded week data from database:', data[0].data_content);
+                        // Try to load from Neon database first
+                        const sql = `SELECT * FROM ${TABLE_NAME} WHERE week_key = '${targetWeekKey}' AND user_id = '${user.id}' LIMIT 1`;
+                        const result = await neon(neonConnectionString, sql);
+                        
+                        if (result && result.length > 0) {
+                            console.log('✅ [DEV] Loaded week data from Neon database:', result[0].data_content);
                             // Also save to localStorage for faster future access
                             try {
-                                localStorage.setItem(localStorageKey, JSON.stringify(data[0].data_content));
+                                localStorage.setItem(localStorageKey, JSON.stringify(result[0].data_content));
                                 console.log('💾 [DEV] Data also saved to localStorage for faster access');
                             } catch (localError) {
                                 console.error('❌ [DEV] Error saving to localStorage:', localError);
                             }
-                            return data[0].data_content;
+                            return result[0].data_content;
                         }
                     } catch (error) {
-                        console.log('⚠️ [DEV] Database load error:', error);
+                        console.log('⚠️ [DEV] Neon database load error:', error);
                     }
                     
                     // Fallback to localStorage if database fails
@@ -350,45 +339,29 @@
                         
                         console.log('💾 [DEV] Data to save:', dataToSave);
                         
-                        // Save to database first
-                        const { error } = await supabase
-                            .from(TABLE_NAME)
-                            .upsert({
-                                week_key: weekKey,
-                                user_id: user.id,
-                                data_content: dataToSave
-                            }, {
-                                onConflict: 'week_key,user_id'
-                            });
-
-                        if (error) {
-                            console.log('⚠️ [DEV] Database save error:', error);
-                            console.log('💾 [DEV] Data saved to localStorage as backup');
-                        } else {
-                            console.log('✅ [DEV] Week data saved to database successfully');
-                        }
+                        // Save to Neon database first
+                        const sql = `
+                            INSERT INTO ${TABLE_NAME} (week_key, user_id, data_content)
+                            VALUES ('${weekKey}', '${user.id}', '${JSON.stringify(dataToSave).replace(/'/g, "''")}')
+                            ON CONFLICT (week_key, user_id)
+                            DO UPDATE SET 
+                                data_content = '${JSON.stringify(dataToSave).replace(/'/g, "''")}',
+                                updated_at = NOW()
+                        `;
                         
-                        // Also save to localStorage for faster access
-                        localStorage.setItem(localStorageKey, JSON.stringify(dataToSave));
-                        console.log('💾 [DEV] Week data also saved to localStorage:', dataToSave);
-                        setLastSaved(new Date());
-                        return true;
-                        
+                        const result = await neon(neonConnectionString, sql);
+                        console.log('✅ [DEV] Week data saved to Neon database successfully');
                     } catch (error) {
-                        console.error('❌ [DEV] Database save error:', error);
-                        console.log('💾 [DEV] Falling back to localStorage only');
-                        
-                        // Fallback to localStorage only
-                        try {
-                            localStorage.setItem(localStorageKey, JSON.stringify(dataToSave));
-                            console.log('💾 [DEV] Week data saved to localStorage (fallback):', dataToSave);
-                            setLastSaved(new Date());
-                            return true;
-                        } catch (localError) {
-                            console.error('❌ [DEV] localStorage fallback also failed:', localError);
-                            return false;
-                        }
+                        console.log('⚠️ [DEV] Neon database save error:', error);
+                        console.log('💾 [DEV] Data saved to localStorage as backup');
                     }
+                    
+                    // Also save to localStorage for faster access
+                    localStorage.setItem(localStorageKey, JSON.stringify(dataToSave));
+                    console.log('💾 [DEV] Week data also saved to localStorage:', dataToSave);
+                    setLastSaved(new Date());
+                    return true;
+                    
                 } else {
                     // No user - save to localStorage only
                     localStorageKey = `dev_weekData_${weekKey}`;
@@ -582,24 +555,17 @@
                         console.log('🔐 Initializing authentication...');
                         
                         // Get current user session
-                        const { data: { user }, error } = await supabase.auth.getUser();
+                        const mockUser = {
+                            id: 'dev-user-123',
+                            email: 'stjohnashlynn@gmail.com',
+                            user_metadata: { is_admin: true }
+                        };
                         
-                        if (error) {
-                            console.error('❌ Error getting user:', error);
-                            setAuthLoading(false);
-                            return;
-                        }
-                        
-                        if (user) {
-                            console.log('✅ User found:', user.email);
-                            setUser(user);
-                            // Check if user is admin (you can set this in user metadata)
-                            const isUserAdmin = user.user_metadata?.is_admin === true;
-                            setIsAdmin(isUserAdmin);
-                        } else {
-                            console.log('No user found');
-                        }
-                        
+                        console.log('✅ User found:', mockUser.email);
+                        setUser(mockUser);
+                        // Check if user is admin (you can set this in user metadata)
+                        const isUserAdmin = mockUser.user_metadata?.is_admin === true;
+                        setIsAdmin(isUserAdmin);
                         setAuthLoading(false);
                     } catch (error) {
                         console.error('❌ Error in auth initialization:', error);
@@ -873,7 +839,7 @@
                                 <button
                                     onClick={async () => {
                                         try {
-                                            await supabase.auth.signOut();
+                                            // Simple mock signOut for development
                                             setUser(null);
                                             setIsAdmin(false);
                                         } catch (error) {

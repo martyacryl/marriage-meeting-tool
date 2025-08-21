@@ -669,10 +669,10 @@
                 }));
             };
 
-            const addListItem = (listType) => {
+            const addListItem = (listType, text = 'New item...') => {
                 setWeekData(prevData => {
                     const currentItems = prevData[listType] || [];
-                    const newItem = { id: Date.now(), text: 'New item...', completed: false };
+                    const newItem = { id: Date.now(), text: text, completed: false };
                     return {
                         ...prevData,
                         [listType]: [...currentItems, newItem]
@@ -1185,7 +1185,7 @@
 
             const handleAdd = () => {
                 if (newItem.trim()) {
-                    onAdd(listType);
+                    onAdd(listType, newItem.trim());
                     setNewItem('');
                 }
             };

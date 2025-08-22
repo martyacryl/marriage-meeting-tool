@@ -85,6 +85,20 @@
                 neonInitialized
             });
         }
+        
+        // Additional fallback: try again after a longer delay to ensure bundle is fully loaded
+        setTimeout(() => {
+            if (!neonInitialized) {
+                console.log('🔄 [NEON] Final fallback attempt after 5 seconds...');
+                neonInitialized = initializeNeonClient();
+                
+                if (neonInitialized) {
+                    console.log('✅ [NEON] Successfully initialized in final fallback');
+                } else {
+                    console.error('❌ [NEON] Final fallback failed - Neon client may not be available');
+                }
+            }
+        }, 5000); // 5 second final fallback
 
         tailwind.config = {
             theme: {

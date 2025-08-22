@@ -866,7 +866,11 @@
                             {isAdmin && (
                                 <div className="mt-4">
                                     <button
-                                        onClick={() => setShowAdmin(!showAdmin)}
+                                        onClick={() => {
+                                            console.log('🔧 Admin button clicked! Current showAdmin:', showAdmin);
+                                            setShowAdmin(!showAdmin);
+                                            console.log('🔧 New showAdmin value:', !showAdmin);
+                                        }}
                                         className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center gap-2 mx-auto"
                                     >
                                         <AdminIcon />
@@ -875,6 +879,90 @@
                                 </div>
                             )}
                         </div>
+
+                        {/* Admin Panel */}
+                        {showAdmin && (
+                            <div className="section-card rounded-xl p-6 mb-8 bg-blue-50 border-blue-200">
+                                <div className="text-center mb-6">
+                                    <h2 className="section-header text-2xl font-bold mb-2 text-blue-800">
+                                        🔧 Development Admin Panel
+                                    </h2>
+                                    <p className="text-blue-600">
+                                        Development environment statistics and controls
+                                    </p>
+                                </div>
+                                
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    {/* Environment Info */}
+                                    <div className="bg-white p-4 rounded-lg border">
+                                        <h3 className="font-semibold text-gray-800 mb-3">🌍 Environment</h3>
+                                        <div className="space-y-2 text-sm">
+                                            <div><span className="font-medium">Mode:</span> Development</div>
+                                            <div><span className="font-medium">Database:</span> Neon</div>
+                                            <div><span className="font-medium">User ID:</span> {currentUserId}</div>
+                                            <div><span className="font-medium">Week Key:</span> {currentWeekKey}</div>
+                                        </div>
+                                    </div>
+                                    
+                                    {/* Data Statistics */}
+                                    <div className="bg-white p-4 rounded-lg border">
+                                        <h3 className="font-semibold text-gray-800 mb-3">📊 Data Stats</h3>
+                                        <div className="space-y-2 text-sm">
+                                            <div><span className="font-medium">Current Week:</span> {formatWeekDisplay(currentDate)}</div>
+                                            <div><span className="font-medium">Schedule Items:</span> {Object.values(currentWeekData.schedule || {}).flat().filter(item => item.trim()).length}</div>
+                                            <div><span className="font-medium">Todos:</span> {(currentWeekData.todos || []).length}</div>
+                                            <div><span className="font-medium">Prayers:</span> {(currentWeekData.prayers || []).length}</div>
+                                        </div>
+                                    </div>
+                                    
+                                    {/* Database Status */}
+                                    <div className="bg-white p-4 rounded-lg border">
+                                        <h3 className="font-semibold text-gray-800 mb-3">🗄️ Database</h3>
+                                        <div className="space-y-2 text-sm">
+                                            <div><span className="font-medium">Status:</span> <span className="text-green-600">Connected</span></div>
+                                            <div><span className="font-medium">Auto-save:</span> <span className="text-green-600">Active</span></div>
+                                            <div><span className="font-medium">Last Sync:</span> {lastSaved ? lastSaved.toLocaleTimeString() : 'Never'}</div>
+                                        </div>
+                                    </div>
+                                    
+                                    {/* Development Controls */}
+                                    <div className="bg-white p-4 rounded-lg border">
+                                        <h3 className="font-semibold text-gray-800 mb-3">⚙️ Controls</h3>
+                                        <div className="space-y-2">
+                                            <button
+                                                onClick={() => {
+                                                    console.log('🧪 Testing Neon connection...');
+                                                    const dbManager = new NeonDatabaseManager();
+                                                    dbManager.testConnection().then(result => {
+                                                        if (result) {
+                                                            alert('✅ Neon connection test successful!');
+                                                        } else {
+                                                            alert('❌ Neon connection test failed!');
+                                                        }
+                                                    }).catch(error => {
+                                                        alert('❌ Neon connection test error: ' + error.message);
+                                                    });
+                                                }}
+                                                className="w-full px-3 py-2 bg-blue-500 text-white text-sm rounded hover:bg-blue-600 transition-colors"
+                                            >
+                                                Test Database
+                                            </button>
+                                            <button
+                                                onClick={() => {
+                                                    console.log('🔍 Debug data...');
+                                                    console.log('Current weekData:', currentWeekData);
+                                                    console.log('Current error:', error);
+                                                    console.log('Current loading state:', isLoading);
+                                                }}
+                                                className="w-full px-3 py-2 bg-gray-500 text-white text-sm rounded hover:bg-gray-600 transition-colors"
+                                            >
+                                                Debug Data
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
 
                         {/* User Info and Sign Out */}
                         <div className="flex justify-between items-center mb-6 p-4 bg-white rounded-lg shadow-sm">
@@ -1076,93 +1164,7 @@
                         <p className="text-gray-400 text-xs mt-2">
                             All changes sync in real-time
                         </p>
-                    </div>
-
-                        {/* Admin Panel */}
-                        {showAdmin && (
-                            <div className="section-card rounded-xl p-6 mb-8 bg-blue-50 border-blue-200">
-                                <div className="text-center mb-6">
-                                    <h2 className="section-header text-2xl font-bold mb-2 text-blue-800">
-                                        🔧 Development Admin Panel
-                                    </h2>
-                                    <p className="text-blue-600">
-                                        Development environment statistics and controls
-                                    </p>
-                                </div>
-                                
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    {/* Environment Info */}
-                                    <div className="bg-white p-4 rounded-lg border">
-                                        <h3 className="font-semibold text-gray-800 mb-3">🌍 Environment</h3>
-                                        <div className="space-y-2 text-sm">
-                                            <div><span className="font-medium">Mode:</span> Development</div>
-                                            <div><span className="font-medium">Database:</span> Neon</div>
-                                            <div><span className="font-medium">User ID:</span> {currentUserId}</div>
-                                            <div><span className="font-medium">Week Key:</span> {currentWeekKey}</div>
-                                        </div>
-                                    </div>
-                                    
-                                    {/* Data Statistics */}
-                                    <div className="bg-white p-4 rounded-lg border">
-                                        <h3 className="font-semibold text-gray-800 mb-3">📊 Data Stats</h3>
-                                        <div className="space-y-2 text-sm">
-                                            <div><span className="font-medium">Current Week:</span> {formatWeekDisplay(currentDate)}</div>
-                                            <div><span className="font-medium">Schedule Items:</span> {Object.values(currentWeekData.schedule || {}).flat().filter(item => item.trim()).length}</div>
-                                            <div><span className="font-medium">Todos:</span> {(currentWeekData.todos || []).length}</div>
-                                            <div><span className="font-medium">Prayers:</span> {(currentWeekData.prayers || []).length}</div>
-                                        </div>
-                                    </div>
-                                    
-                                    {/* Database Status */}
-                                    <div className="bg-white p-4 rounded-lg border">
-                                        <h3 className="font-semibold text-gray-800 mb-3">🗄️ Database</h3>
-                                        <div className="space-y-2 text-sm">
-                                            <div><span className="font-medium">Status:</span> <span className="text-green-600">Connected</span></div>
-                                            <div><span className="font-medium">Auto-save:</span> <span className="text-green-600">Active</span></div>
-                                            <div><span className="font-medium">Last Sync:</span> {lastSaved ? lastSaved.toLocaleTimeString() : 'Never'}</div>
-                                        </div>
-                                    </div>
-                                    
-                                    {/* Development Controls */}
-                                    <div className="bg-white p-4 rounded-lg border">
-                                        <h3 className="font-semibold text-gray-800 mb-3">⚙️ Controls</h3>
-                                        <div className="space-y-2">
-                                            <button
-                                                onClick={() => {
-                                                    console.log('🧪 Testing Neon connection...');
-                                                    const dbManager = new NeonDatabaseManager();
-                                                    dbManager.testConnection().then(result => {
-                                                        if (result) {
-                                                            alert('✅ Neon connection test successful!');
-                                                        } else {
-                                                            alert('❌ Neon connection test failed!');
-                                                        }
-                                                    }).catch(error => {
-                                                        alert('❌ Neon connection test error: ' + error.message);
-                                                    });
-                                                }}
-                                                className="w-full px-3 py-2 bg-blue-500 text-white text-sm rounded hover:bg-blue-600 transition-colors"
-                                            >
-                                                Test Database
-                                            </button>
-                                            <button
-                                                onClick={() => {
-                                                    console.log('🔍 Debug data...');
-                                                    console.log('Current weekData:', currentWeekData);
-                                                    console.log('Current error:', error);
-                                                    console.log('Current loading state:', isLoading);
-                                                }}
-                                                className="w-full px-3 py-2 bg-gray-500 text-white text-sm rounded hover:bg-gray-600 transition-colors"
-                                            >
-                                                Debug Data
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
-                        <div className="section-divider"></div>
+                                            </div>
                 </div>
             );
         };

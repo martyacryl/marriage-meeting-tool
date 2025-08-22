@@ -209,7 +209,9 @@
 
                     // The neon client function should be called directly with the connection string and query
                     // neon(connectionString, query, params)
-                    const result = await this.neonClient(neonConnectionString, query, params);
+                    // But first we need to create a client instance
+                    const sql = this.neonClient(neonConnectionString);
+                    const result = await sql(query, params);
 
                     console.log('✅ [NEON] Query successful:', result);
                     console.log('🔍 [NEON] Result type:', typeof result);

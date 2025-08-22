@@ -330,6 +330,16 @@
 
             async testConnection() {
                 try {
+                    // Ensure Neon client is initialized first
+                    if (!this.isInitialized) {
+                        const initialized = await this.initializeNeon();
+                        if (!initialized) {
+                            console.error('❌ [NEON] Failed to initialize Neon client');
+                            return false;
+                        }
+                    }
+
+                    // Test with a simple query
                     const result = await this.executeQuery('SELECT 1 as test');
                     console.log('✅ [NEON] Connection test successful:', result);
                     return true;
@@ -965,7 +975,16 @@
                                     <div className="bg-white p-4 rounded-lg border">
                                         <h3 className="font-semibold text-gray-800 mb-3">🗄️ Database</h3>
                                         <div className="space-y-2 text-sm">
-                                            <div><span className="font-medium">Status:</span> <span className="text-green-600">Connected</span></div>
+                                            <div><span className="font-medium">Status:</span> 
+                                                <span className={isNeonAvailable ? 'text-green-600' : 'text-red-600'}>
+                                                    {isNeonAvailable ? 'Available' : 'Not Available'}
+                                                </span>
+                                            </div>
+                                            <div><span className="font-medium">Connection:</span> 
+                                                <span className={neonClient ? 'text-green-600' : 'text-red-600'}>
+                                                    {neonClient ? 'Initialized' : 'Not Initialized'}
+                                                </span>
+                                            </div>
                                             <div><span className="font-medium">Auto-save:</span> <span className="text-green-600">Active</span></div>
                                             <div><span className="font-medium">Last Sync:</span> {lastSaved ? lastSaved.toLocaleTimeString() : 'Never'}</div>
                                         </div>
@@ -976,22 +995,24 @@
                                         <h3 className="font-semibold text-gray-800 mb-3">⚙️ Controls</h3>
                                         <div className="space-y-2">
                                             <button
-                                                onClick={() => {
+                                                onClick={async () => {
                                                     console.log('🧪 Testing Neon connection...');
-                                                    const dbManager = new NeonDatabaseManager();
-                                                    dbManager.testConnection().then(result => {
+                                                    try {
+                                                        const dbManager = new NeonDatabaseManager();
+                                                        const result = await dbManager.testConnection();
                                                         if (result) {
-                                                            alert('✅ Neon connection test successful!');
+                                                            alert('✅ Neon connection test successful!\n\nDatabase is working and ready to use.');
                                                         } else {
-                                                            alert('❌ Neon connection test failed!');
+                                                            alert('❌ Neon connection test failed!\n\nCheck console for detailed error information.');
                                                         }
-                                                    }).catch(error => {
-                                                        alert('❌ Neon connection test error: ' + error.message);
-                                                    });
+                                                    } catch (error) {
+                                                        console.error('❌ Neon connection test error:', error);
+                                                        alert('❌ Neon connection test error:\n\n' + error.message + '\n\nCheck console for more details.');
+                                                    }
                                                 }}
                                                 className="w-full px-3 py-2 bg-blue-500 text-white text-sm rounded hover:bg-blue-600 transition-colors"
                                             >
-                                                Test Database
+                                                🧪 Test Database
                                             </button>
                                             <button
                                                 onClick={() => {
@@ -1004,6 +1025,77 @@
                                             >
                                                 Debug Data
                                             </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                {/* User Management Section */}
+                                <div className="mt-8 bg-white p-6 rounded-lg border">
+                                    <h3 className="font-semibold text-gray-800 mb-4 text-lg">👥 User Management</h3>
+                                    
+                                    {/* Add User Form */}
+                                    <div className="mb-6">
+                                        <h4 className="font-medium text-gray-700 mb-3">Add New User</h4>
+                                        <form onSubmit={(e) => {
+                                            e.preventDefault();
+                                            const formData = new FormData(e.target);
+                                            const email = formData.get('email');
+                                            const password = formData.get('password');
+                                            const displayName = formData.get('displayName');
+                                            
+                                            // For development, we'll just show an alert
+                                            // In production, this would create a real user
+                                            alert(`Development Mode: Would create user:\nEmail: ${email}\nDisplay Name: ${displayName}\nPassword: ${password}\n\nNote: In production, this would create a real user account.`);
+                                            
+                                            // Reset form
+                                            e.target.reset();
+                                        }} className="space-y-3">
+                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                                <input
+                                                    type="email"
+                                                    name="email"
+                                                    placeholder="Email address"
+                                                    required
+                                                    className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                />
+                                                <input
+                                                    type="text"
+                                                    name="displayName"
+                                                    placeholder="Display name"
+                                                    required
+                                                    className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                />
+                                                <input
+                                                    type="password"
+                                                    name="password"
+                                                    placeholder="Password"
+                                                    required
+                                                    className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                />
+                                            </div>
+                                            <button
+                                                type="submit"
+                                                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors"
+                                            >
+                                                ➕ Add User
+                                            </button>
+                                        </form>
+                                    </div>
+                                    
+                                    {/* User List */}
+                                    <div>
+                                        <h4 className="font-medium text-gray-700 mb-3">Current Users</h4>
+                                        <div className="bg-gray-50 p-4 rounded-lg">
+                                            <div className="text-sm text-gray-600">
+                                                <div className="flex justify-between items-center py-2 border-b border-gray-200">
+                                                    <span><strong>Email:</strong> {user?.email || 'Current User'}</span>
+                                                    <span className="text-blue-600 font-medium">Admin</span>
+                                                </div>
+                                                <div className="text-xs text-gray-500 mt-2">
+                                                    Note: In development mode, user management is simulated. 
+                                                    Real user creation would require production authentication setup.
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>

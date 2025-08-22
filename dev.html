@@ -15,30 +15,76 @@
         let neonClient = null;
         let isNeonAvailable = false;
         
-        // Try to initialize Neon client
-        try {
-            if (window.neonClient) {
-                neonClient = window.neonClient;
-                isNeonAvailable = true;
-                console.log('✅ [NEON] Client loaded successfully from window.neonClient');
-            } else if (window.neon) {
-                neonClient = window.neon;
-                isNeonAvailable = true;
-                console.log('✅ [NEON] Client loaded successfully from window.neon');
-            } else {
-                console.log('⚠️ [NEON] No Neon client found in window object');
+        // Function to initialize Neon client
+        function initializeNeonClient() {
+            try {
+                if (window.neonClient) {
+                    neonClient = window.neonClient;
+                    isNeonAvailable = true;
+                    console.log('✅ [NEON] Client loaded successfully from window.neonClient');
+                    return true;
+                } else if (window.neon) {
+                    neonClient = window.neon;
+                    isNeonAvailable = true;
+                    console.log('✅ [NEON] Client loaded successfully from window.neon');
+                    return true;
+                } else {
+                    console.log('⚠️ [NEON] No Neon client found in window object');
+                    return false;
+                }
+            } catch (error) {
+                console.error('❌ [NEON] Error initializing client:', error);
+                return false;
             }
-        } catch (error) {
-            console.error('❌ [NEON] Error initializing client:', error);
         }
-
-        // Debug: Log the current state
-        console.log('🔍 [NEON] Initialization complete:', {
-            isNeonAvailable,
-            neonClient: !!neonClient,
-            windowNeonClient: !!window.neonClient,
-            windowNeon: !!window.neon
-        });
+        
+        // Try to initialize immediately
+        let neonInitialized = initializeNeonClient();
+        
+        // If not initialized, wait for DOMContentLoaded and try again
+        if (!neonInitialized) {
+            document.addEventListener('DOMContentLoaded', () => {
+                console.log('🔄 [NEON] DOM loaded, retrying Neon initialization...');
+                neonInitialized = initializeNeonClient();
+                
+                // Debug: Log the final state
+                console.log('🔍 [NEON] Final initialization state:', {
+                    isNeonAvailable,
+                    neonClient: !!neonClient,
+                    windowNeonClient: !!window.neonClient,
+                    windowNeon: !!window.neon,
+                    neonInitialized
+                });
+            });
+            
+            // Also add a fallback timeout in case DOMContentLoaded doesn't work
+            setTimeout(() => {
+                if (!neonInitialized) {
+                    console.log('⏰ [NEON] Timeout reached, retrying Neon initialization...');
+                    neonInitialized = initializeNeonClient();
+                    
+                    if (neonInitialized) {
+                        console.log('✅ [NEON] Successfully initialized after timeout');
+                    } else {
+                        console.error('❌ [NEON] Failed to initialize Neon client after timeout');
+                        console.error('🔍 [NEON] Window state:', {
+                            windowNeonClient: !!window.neonClient,
+                            windowNeon: !!window.neon,
+                            windowKeys: Object.keys(window).filter(key => key.includes('neon') || key.includes('Neon'))
+                        });
+                    }
+                }
+            }, 2000); // 2 second timeout
+        } else {
+            // Debug: Log the current state
+            console.log('🔍 [NEON] Initialization complete:', {
+                isNeonAvailable,
+                neonClient: !!neonClient,
+                windowNeonClient: !!window.neonClient,
+                windowNeon: !!window.neon,
+                neonInitialized
+            });
+        }
 
         tailwind.config = {
             theme: {

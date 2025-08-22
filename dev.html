@@ -207,19 +207,9 @@
                     console.log('🚀 [NEON] Executing query:', query);
                     console.log('🚀 [NEON] Parameters:', params);
 
-                    // Create a Neon client instance with the connection string
-                    const sqlClient = this.neonClient(neonConnectionString);
-                    
-                    let result;
-                    if (sqlClient && sqlClient.query) {
-                        // Use the query method with parameters
-                        result = await sqlClient.query(query, params);
-                    } else if (sqlClient && sqlClient.execute) {
-                        // Use the execute method
-                        result = await sqlClient.execute(query, params);
-                    } else {
-                        throw new Error('Neon client does not support query or execute methods');
-                    }
+                    // The neon client function should be called directly with the connection string and query
+                    // neon(connectionString, query, params)
+                    const result = await this.neonClient(neonConnectionString, query, params);
 
                     console.log('✅ [NEON] Query successful:', result);
                     console.log('🔍 [NEON] Result type:', typeof result);

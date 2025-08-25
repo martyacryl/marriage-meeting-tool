@@ -700,6 +700,7 @@
                     
                     console.log('✅ User authenticated:', authenticatedUser.email);
                     console.log('🔍 User ID from database:', dbUser.id, 'Type:', typeof dbUser.id);
+                    console.log('🔍 Full dbUser object:', dbUser);
                     
                     // Set the global currentUser variable for getCurrentUserId() to work
                     window.currentAuthenticatedUser = authenticatedUser;
@@ -829,6 +830,17 @@
                                 console.log('🔑 Password: admin123');
                             } else {
                                 console.log('✅ Default admin user already exists in database');
+                                
+                                // Check if the admin user has a numeric ID (should be UUID)
+                                if (existingAdmin.id && typeof existingAdmin.id === 'number') {
+                                    console.log('⚠️ Admin user has numeric ID, regenerating with UUID...');
+                                    
+                                    // Delete the old user and recreate with UUID
+                                    await dbManager.deleteUser(existingAdmin.id);
+                                    await dbManager.createUser(currentAdminEmail, 'St. John Admin', 'admin123', true);
+                                    
+                                    console.log('✅ Admin user regenerated with UUID');
+                                }
                             }
                             
                             // Load existing users

@@ -757,10 +757,23 @@
                             // Initialize users table
                             await dbManager.createUsersTable();
                             
+                            // Add current admin user to database if not exists
+                            const currentAdminEmail = 'stjohnashlynn@gmail.com';
+                            const existingAdmin = await dbManager.getUserByEmail(currentAdminEmail);
+                            
+                            if (!existingAdmin) {
+                                console.log('➕ Adding current admin user to database...');
+                                await dbManager.createUser(currentAdminEmail, 'St. John Admin', 'admin123', true);
+                                console.log('✅ Admin user added to database');
+                            } else {
+                                console.log('✅ Admin user already exists in database');
+                            }
+                            
                             // Load existing users
                             const existingUsers = await dbManager.getAllUsers();
                             setUsers(existingUsers);
                             console.log('✅ Users loaded:', existingUsers);
+                            console.log('🔍 User count:', existingUsers.length);
                         } else {
                             console.error('❌ Neon connection failed');
                         }
@@ -1168,6 +1181,43 @@
                                             >
                                                 🔄 Refresh Users
                                             </button>
+                                            <button
+                                                onClick={async () => {
+                                                    try {
+                                                        console.log('🔍 Debugging database state...');
+                                                        const dbManager = new NeonDatabaseManager();
+                                                        
+                                                        // Test connection
+                                                        const connectionOk = await dbManager.testConnection();
+                                                        console.log('🔍 Connection test result:', connectionOk);
+                                                        
+                                                        // Check if users table exists
+                                                        const tableCheck = await dbManager.executeQuery(`
+                                                            SELECT EXISTS (
+                                                                SELECT FROM information_schema.tables 
+                                                                WHERE table_name = 'users'
+                                                            ) as table_exists
+                                                        `);
+                                                        console.log('🔍 Users table exists:', tableCheck);
+                                                        
+                                                        // Count users
+                                                        const userCount = await dbManager.executeQuery('SELECT COUNT(*) as count FROM users');
+                                                        console.log('🔍 User count:', userCount);
+                                                        
+                                                        // Get all users
+                                                        const allUsers = await dbManager.getAllUsers();
+                                                        console.log('🔍 All users:', allUsers);
+                                                        
+                                                        alert(`🔍 Database Debug Info:\n\nConnection: ${connectionOk ? 'OK' : 'FAILED'}\nTable exists: ${tableCheck[0]?.table_exists ? 'YES' : 'NO'}\nUser count: ${userCount[0]?.count || 0}\nUsers: ${JSON.stringify(allUsers, null, 2)}`);
+                                                    } catch (error) {
+                                                        console.error('❌ Debug failed:', error);
+                                                        alert(`❌ Debug failed:\n\n${error.message}`);
+                                                    }
+                                                }}
+                                                className="w-full px-3 py-2 bg-orange-500 text-white text-sm rounded hover:bg-orange-600 transition-colors"
+                                            >
+                                                🔍 Debug DB
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
@@ -1191,9 +1241,12 @@
                                                 
                                                 // Create user in database
                                                 const dbManager = new NeonDatabaseManager();
-                                                const newUser = await dbManager.createUser(email, displayName, password, false);
+                                                console.log('🔄 Creating user in database:', { email, displayName, isAdmin: false });
                                                 
-                                                if (newUser) {
+                                                const newUser = await dbManager.createUser(email, displayName, password, false);
+                                                console.log('📊 New user result:', newUser);
+                                                
+                                                if (newUser && newUser.length > 0) {
                                                     // Add to local state
                                                     setUsers(prevUsers => [newUser[0], ...prevUsers]);
                                                     
@@ -1202,6 +1255,10 @@
                                                     
                                                     // Reset form
                                                     e.target.reset();
+                                                    
+                                                    console.log('✅ User added to local state, total users:', users.length + 1);
+                                                } else {
+                                                    throw new Error('User creation returned empty result');
                                                 }
                                             } catch (error) {
                                                 console.error('❌ Failed to create user:', error);

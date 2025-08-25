@@ -622,10 +622,15 @@
 
         // Get the current user ID
         const getCurrentUserId = () => {
+            console.log('🔍 getCurrentUserId called');
+            console.log('🔍 window.currentAuthenticatedUser:', window.currentAuthenticatedUser);
+            
             if (window.currentAuthenticatedUser && window.currentAuthenticatedUser.id) {
+                console.log('🔍 Returning authenticated user ID:', window.currentAuthenticatedUser.id);
                 return window.currentAuthenticatedUser.id;
             }
             // Fallback to dev user ID (should not be used in production)
+            console.log('🔍 Falling back to dev user ID');
             return generateDevUserId();
         };
 
@@ -684,6 +689,7 @@
                     };
                     
                     console.log('✅ User authenticated:', authenticatedUser.email);
+                    console.log('🔍 User ID from database:', dbUser.id, 'Type:', typeof dbUser.id);
                     
                     // Set the global currentUser variable for getCurrentUserId() to work
                     window.currentAuthenticatedUser = authenticatedUser;

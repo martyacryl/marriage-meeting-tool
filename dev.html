@@ -647,7 +647,16 @@
                     
                     // Check if user exists in database
                     const dbManager = new NeonDatabaseManager();
-                    const dbUser = await dbManager.getUserByEmail(email);
+                    
+                    // Explicitly query for user with password_hash
+                    const query = `
+                        SELECT id, email, display_name, password_hash, is_admin, created_at
+                        FROM users
+                        WHERE email = $1
+                        LIMIT 1
+                    `;
+                    const result = await dbManager.executeQuery(query, [email]);
+                    const dbUser = result && result.length > 0 ? result[0] : null;
                     
                     if (!dbUser) {
                         throw new Error('User not found. Please contact an admin to create your account.');

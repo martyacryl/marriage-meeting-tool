@@ -531,7 +531,7 @@
 
             // Auto-save functionality with improved debouncing
             React.useEffect(() => {
-                if (!weekData || isLoading) return;
+                if (!weekData || isLoading || !userId) return;
 
                 const currentDataString = JSON.stringify(weekData);
                 

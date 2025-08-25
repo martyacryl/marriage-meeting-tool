@@ -491,8 +491,18 @@
                     }
                 }
 
+                console.log('🔍 useWeekData useEffect - weekKey:', weekKey, 'userId:', userId);
+                
                 if (weekKey && userId) {
+                    console.log('🔍 useWeekData - Initializing data with userId:', userId);
                     initializeData();
+                } else {
+                    console.log('🔍 useWeekData - Skipping initialization, missing weekKey or userId');
+                    // Set empty structure when no user
+                    const emptyData = dbManager.current.getEmptyWeekStructure();
+                    setWeekData(emptyData);
+                    lastSaveData.current = JSON.stringify(emptyData);
+                    setIsLoading(false);
                 }
             }, [weekKey, userId]);
 
@@ -778,6 +788,8 @@
             console.log('🔍 App render - currentUserId:', currentUserId);
             console.log('🔍 App render - window.currentAuthenticatedUser:', window.currentAuthenticatedUser);
             
+            // Force hook re-initialization when user changes by using a key
+            const hookKey = currentUserId || 'no-user';
             const { weekData, setWeekData, isLoading, error, manualSave } = useWeekData(currentWeekKey, currentUserId);
 
 

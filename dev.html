@@ -728,6 +728,14 @@
                     // Set the global currentUser variable for getCurrentUserId() to work
                     window.currentAuthenticatedUser = authenticatedUser;
                     
+                    // Store authentication in localStorage for persistence
+                    const authData = {
+                        user: authenticatedUser,
+                        timestamp: Date.now()
+                    };
+                    localStorage.setItem('marriageMeetingAuth', JSON.stringify(authData));
+                    console.log('💾 Authentication stored in localStorage');
+                    
                     if (authenticatedUser.is_admin) {
                         onAdminSignIn(authenticatedUser);
                     } else {
@@ -886,14 +894,59 @@
 
 
 
-            // Initialize authentication - no auto-login, require real sign-in
+            // Initialize authentication with persistent login
             useEffect(() => {
                 const initializeAuth = async () => {
                     try {
                         console.log('🔐 Initializing authentication...');
                         
-                        // Don't auto-login in multi-tenant mode
-                        // Users must sign in with their database credentials
+                        // Check for existing authentication in localStorage
+                        const storedAuth = localStorage.getItem('marriageMeetingAuth');
+                        if (storedAuth) {
+                            try {
+                                const authData = JSON.parse(storedAuth);
+                                const { user, timestamp } = authData;
+                                
+                                // Check if the stored auth is still valid (24 hours)
+                                const now = Date.now();
+                                const authAge = now - timestamp;
+                                const maxAge = 24 * 60 * 60 * 1000; // 24 hours
+                                
+                                if (authAge < maxAge && user && user.id) {
+                                    console.log('🔍 Found valid stored authentication');
+                                    
+                                    // Verify the user still exists in database
+                                    const dbManager = new NeonDatabaseManager();
+                                    const dbUser = await dbManager.getUserByEmail(user.email);
+                                    
+                                    if (dbUser && dbUser.id === user.id) {
+                                        console.log('✅ Stored authentication is valid, auto-logging in');
+                                        window.currentAuthenticatedUser = user;
+                                        
+                                        if (user.is_admin) {
+                                            setUser(user);
+                                            setIsAdmin(true);
+                                        } else {
+                                            setUser(user);
+                                            setIsAdmin(false);
+                                        }
+                                        
+                                        setAuthLoading(false);
+                                        return;
+                                    } else {
+                                        console.log('⚠️ Stored user no longer exists in database, clearing auth');
+                                        localStorage.removeItem('marriageMeetingAuth');
+                                    }
+                                } else {
+                                    console.log('⚠️ Stored authentication expired, clearing');
+                                    localStorage.removeItem('marriageMeetingAuth');
+                                }
+                            } catch (parseError) {
+                                console.log('⚠️ Invalid stored authentication, clearing');
+                                localStorage.removeItem('marriageMeetingAuth');
+                            }
+                        }
+                        
                         setAuthLoading(false);
                         console.log('✅ Authentication ready - please sign in');
                     } catch (error) {
@@ -1499,7 +1552,10 @@
                                             setUser(null);
                                             setIsAdmin(false);
                                             window.currentAuthenticatedUser = null;
-                                            console.log('✅ User signed out');
+                                            
+                                            // Clear stored authentication
+                                            localStorage.removeItem('marriageMeetingAuth');
+                                            console.log('✅ User signed out and authentication cleared');
                                         } catch (error) {
                                             console.error('Sign out error:', error);
                                         }

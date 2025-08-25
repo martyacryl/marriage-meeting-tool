@@ -384,9 +384,10 @@
                     // For development, we'll store it as-is (NOT recommended for production)
                     const passwordHash = password; // In production: await bcrypt.hash(password, 10)
                     
+                    // Generate a UUID explicitly since DEFAULT gen_random_uuid() isn't working
                     const query = `
-                        INSERT INTO users (email, display_name, password_hash, is_admin)
-                        VALUES ($1, $2, $3, $4)
+                        INSERT INTO users (id, email, display_name, password_hash, is_admin)
+                        VALUES (gen_random_uuid(), $1, $2, $3, $4)
                         RETURNING id, email, display_name, is_admin, created_at
                     `;
                     

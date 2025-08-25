@@ -622,10 +622,10 @@
 
         // Get the current user ID
         const getCurrentUserId = () => {
-            if (currentUser && currentUser.id) {
-                return currentUser.id;
+            if (window.currentAuthenticatedUser && window.currentAuthenticatedUser.id) {
+                return window.currentAuthenticatedUser.id;
             }
-            // Fallback to dev user ID
+            // Fallback to dev user ID (should not be used in production)
             return generateDevUserId();
         };
 
@@ -642,20 +642,41 @@
                 setError('');
 
                 try {
-                    // Simple mock authentication for development with Neon
-                    const mockUser = {
-                        id: getCurrentUserId(),
-                        email: email,
-                        user_metadata: { is_admin: false }
+                    // Real authentication with database users
+                    console.log('🔐 Attempting real authentication...');
+                    
+                    // Check if user exists in database
+                    const dbManager = new NeonDatabaseManager();
+                    const dbUser = await dbManager.getUserByEmail(email);
+                    
+                    if (!dbUser) {
+                        throw new Error('User not found. Please contact an admin to create your account.');
+                    }
+                    
+                    // In a real app, you'd verify the password hash
+                    // For development, we'll just check if password matches (NOT secure for production)
+                    if (dbUser.password_hash !== password) {
+                        throw new Error('Invalid password.');
+                    }
+                    
+                    // Create user object from database user
+                    const authenticatedUser = {
+                        id: dbUser.id,
+                        email: dbUser.email,
+                        display_name: dbUser.display_name,
+                        is_admin: dbUser.is_admin,
+                        user_metadata: { is_admin: dbUser.is_admin }
                     };
                     
-                    // Check if user is admin (you can set this in user metadata)
-                    const isUserAdmin = email.includes('admin') || email.includes('stjohn');
+                    console.log('✅ User authenticated:', authenticatedUser.email);
                     
-                    if (isUserAdmin) {
-                        onAdminSignIn(mockUser);
+                    // Set the global currentUser variable for getCurrentUserId() to work
+                    window.currentAuthenticatedUser = authenticatedUser;
+                    
+                    if (authenticatedUser.is_admin) {
+                        onAdminSignIn(authenticatedUser);
                     } else {
-                        onSignIn(mockUser);
+                        onSignIn(authenticatedUser);
                     }
                 } catch (error) {
                     setError(error.message);
@@ -757,16 +778,18 @@
                             // Initialize users table
                             await dbManager.createUsersTable();
                             
-                            // Add current admin user to database if not exists
+                            // Add default admin user to database if not exists
                             const currentAdminEmail = 'stjohnashlynn@gmail.com';
                             const existingAdmin = await dbManager.getUserByEmail(currentAdminEmail);
                             
                             if (!existingAdmin) {
-                                console.log('➕ Adding current admin user to database...');
+                                console.log('➕ Adding default admin user to database...');
                                 await dbManager.createUser(currentAdminEmail, 'St. John Admin', 'admin123', true);
-                                console.log('✅ Admin user added to database');
+                                console.log('✅ Default admin user added to database');
+                                console.log('📧 Email: stjohnashlynn@gmail.com');
+                                console.log('🔑 Password: admin123');
                             } else {
-                                console.log('✅ Admin user already exists in database');
+                                console.log('✅ Default admin user already exists in database');
                             }
                             
                             // Load existing users
@@ -789,25 +812,16 @@
 
 
 
-            // Initialize authentication
+            // Initialize authentication - no auto-login, require real sign-in
             useEffect(() => {
                 const initializeAuth = async () => {
                     try {
                         console.log('🔐 Initializing authentication...');
                         
-                        // Get current user session
-                        const mockUser = {
-                            id: getCurrentUserId(),
-                            email: 'stjohnashlynn@gmail.com',
-                            user_metadata: { is_admin: true }
-                        };
-                        
-                        console.log('✅ User found:', mockUser.email);
-                        setUser(mockUser);
-                        // Check if user is admin (you can set this in user metadata)
-                        const isUserAdmin = mockUser.user_metadata?.is_admin === true;
-                        setIsAdmin(isUserAdmin);
+                        // Don't auto-login in multi-tenant mode
+                        // Users must sign in with their database credentials
                         setAuthLoading(false);
+                        console.log('✅ Authentication ready - please sign in');
                     } catch (error) {
                         console.error('❌ Error in auth initialization:', error);
                         setAuthLoading(false);
@@ -1382,9 +1396,11 @@
                                 <button
                                     onClick={async () => {
                                         try {
-                                            // Simple mock signOut for development
+                                            // Clear authenticated user
                                             setUser(null);
                                             setIsAdmin(false);
+                                            window.currentAuthenticatedUser = null;
+                                            console.log('✅ User signed out');
                                         } catch (error) {
                                             console.error('Sign out error:', error);
                                         }

@@ -629,9 +629,9 @@
                 console.log('🔍 Returning authenticated user ID:', window.currentAuthenticatedUser.id);
                 return window.currentAuthenticatedUser.id;
             }
-            // Fallback to dev user ID (should not be used in production)
-            console.log('🔍 Falling back to dev user ID');
-            return generateDevUserId();
+            // Return null if no authenticated user (no fallback to dev user ID)
+            console.log('🔍 No authenticated user, returning null');
+            return null;
         };
 
         // Authentication Components
@@ -769,9 +769,9 @@
         const [users, setUsers] = useState([]); // Added users state
         const [userLoading, setUserLoading] = useState(false); // Added user loading state
 
-            // Use the new useWeekData hook
+            // Use the new useWeekData hook - only load data when user is authenticated
             const currentWeekKey = formatWeekKey(currentDate);
-            const currentUserId = getCurrentUserId();
+            const currentUserId = user ? getCurrentUserId() : null;
             const { weekData, setWeekData, isLoading, error, manualSave } = useWeekData(currentWeekKey, currentUserId);
 
 

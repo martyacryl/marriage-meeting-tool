@@ -358,6 +358,27 @@
             // User Management Methods
             async createUsersTable() {
                 try {
+                    // First, check if the table exists and has the correct schema
+                    const checkQuery = `
+                        SELECT column_name, data_type 
+                        FROM information_schema.columns 
+                        WHERE table_name = 'users' AND column_name = 'id'
+                    `;
+                    
+                    const checkResult = await this.executeQuery(checkQuery);
+                    console.log('🔍 [NEON] Current users table schema:', checkResult);
+                    
+                    if (checkResult && checkResult.length > 0) {
+                        const idColumn = checkResult[0];
+                        if (idColumn.data_type !== 'uuid') {
+                            console.log('⚠️ [NEON] Users table has wrong ID column type, recreating...');
+                            
+                            // Drop the existing table
+                            await this.executeQuery('DROP TABLE IF EXISTS users CASCADE');
+                            console.log('✅ [NEON] Dropped existing users table');
+                        }
+                    }
+                    
                     const query = `
                         CREATE TABLE IF NOT EXISTS users (
                             id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -369,6 +390,7 @@
                             updated_at TIMESTAMP DEFAULT NOW()
                         )
                     `;
+                    
                     await this.executeQuery(query);
                     console.log('✅ [NEON] Users table created/verified successfully');
                     return true;

@@ -772,6 +772,12 @@
             // Use the new useWeekData hook - only load data when user is authenticated
             const currentWeekKey = formatWeekKey(currentDate);
             const currentUserId = user ? getCurrentUserId() : null;
+            
+            // Debug logging
+            console.log('🔍 App render - user state:', user);
+            console.log('🔍 App render - currentUserId:', currentUserId);
+            console.log('🔍 App render - window.currentAuthenticatedUser:', window.currentAuthenticatedUser);
+            
             const { weekData, setWeekData, isLoading, error, manualSave } = useWeekData(currentWeekKey, currentUserId);
 
 
@@ -954,17 +960,21 @@
                 const newWeekKey = formatWeekKey(newDate);
                 console.log(`🔄 Navigating to new week: ${newWeekKey}, loading data...`);
                 
-                // Load data for the specific week
-                useWeekData(newWeekKey, getCurrentUserId()).then(savedData => {
-                    if (savedData) {
-                        console.log(`✅ Loaded data for week ${newWeekKey}:`, savedData);
-                        setWeekData(prev => ({ ...prev, [newWeekKey]: savedData }));
-                    } else {
-                        console.log(`🆕 No data found for week ${newWeekKey}, will create new data`);
-                    }
-                }).catch(error => {
-                    console.error(`❌ Error loading data for week ${newWeekKey}:`, error);
-                });
+                // Load data for the specific week - only if user is authenticated
+                if (user && window.currentAuthenticatedUser && window.currentAuthenticatedUser.id) {
+                    useWeekData(newWeekKey, window.currentAuthenticatedUser.id).then(savedData => {
+                        if (savedData) {
+                            console.log(`✅ Loaded data for week ${newWeekKey}:`, savedData);
+                            setWeekData(prev => ({ ...prev, [newWeekKey]: savedData }));
+                        } else {
+                            console.log(`🆕 No data found for week ${newWeekKey}, will create new data`);
+                        }
+                    }).catch(error => {
+                        console.error(`❌ Error loading data for week ${newWeekKey}:`, error);
+                    });
+                } else {
+                    console.log(`⚠️ Skipping data load for week ${newWeekKey} - user not authenticated`);
+                }
             };
 
             const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];

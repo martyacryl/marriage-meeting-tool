@@ -653,10 +653,16 @@
                         throw new Error('User not found. Please contact an admin to create your account.');
                     }
                     
+                    console.log('🔍 Password check:', {
+                        provided: password,
+                        stored: dbUser.password_hash,
+                        match: dbUser.password_hash === password
+                    });
+                    
                     // In a real app, you'd verify the password hash
                     // For development, we'll just check if password matches (NOT secure for production)
                     if (dbUser.password_hash !== password) {
-                        throw new Error('Invalid password.');
+                        throw new Error(`Invalid password. Expected: ${dbUser.password_hash}, Got: ${password}`);
                     }
                     
                     // Create user object from database user
@@ -1231,6 +1237,27 @@
                                                 className="w-full px-3 py-2 bg-orange-500 text-white text-sm rounded hover:bg-orange-600 transition-colors"
                                             >
                                                 🔍 Debug DB
+                                            </button>
+                                            <button
+                                                onClick={async () => {
+                                                    try {
+                                                        if (confirm('Reset admin password to "admin123"?')) {
+                                                            const dbManager = new NeonDatabaseManager();
+                                                            await dbManager.executeQuery(`
+                                                                UPDATE users 
+                                                                SET password_hash = 'admin123' 
+                                                                WHERE email = 'stjohnashlynn@gmail.com'
+                                                            `);
+                                                            alert('✅ Admin password reset to: admin123');
+                                                        }
+                                                    } catch (error) {
+                                                        console.error('❌ Password reset failed:', error);
+                                                        alert(`❌ Password reset failed:\n\n${error.message}`);
+                                                    }
+                                                }}
+                                                className="w-full px-3 py-2 bg-red-500 text-white text-sm rounded hover:bg-red-600 transition-colors"
+                                            >
+                                                🔑 Reset Admin Password
                                             </button>
                                         </div>
                                     </div>

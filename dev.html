@@ -354,6 +354,102 @@
                     return false;
                 }
             }
+
+            // User Management Methods
+            async createUsersTable() {
+                try {
+                    const query = `
+                        CREATE TABLE IF NOT EXISTS users (
+                            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                            email VARCHAR(255) UNIQUE NOT NULL,
+                            display_name VARCHAR(255) NOT NULL,
+                            password_hash VARCHAR(255) NOT NULL,
+                            is_admin BOOLEAN DEFAULT FALSE,
+                            created_at TIMESTAMP DEFAULT NOW(),
+                            updated_at TIMESTAMP DEFAULT NOW()
+                        )
+                    `;
+                    await this.executeQuery(query);
+                    console.log('✅ [NEON] Users table created/verified successfully');
+                    return true;
+                } catch (error) {
+                    console.error('❌ [NEON] Failed to create users table:', error);
+                    return false;
+                }
+            }
+
+            async createUser(email, displayName, password, isAdmin = false) {
+                try {
+                    // In a real app, you'd hash the password
+                    // For development, we'll store it as-is (NOT recommended for production)
+                    const passwordHash = password; // In production: await bcrypt.hash(password, 10)
+                    
+                    const query = `
+                        INSERT INTO users (email, display_name, password_hash, is_admin)
+                        VALUES ($1, $2, $3, $4)
+                        RETURNING id, email, display_name, is_admin, created_at
+                    `;
+                    
+                    const result = await this.executeQuery(query, [email, displayName, passwordHash, isAdmin]);
+                    console.log('✅ [NEON] User created successfully:', result);
+                    return result;
+                } catch (error) {
+                    console.error('❌ [NEON] Failed to create user:', error);
+                    throw error;
+                }
+            }
+
+            async getAllUsers() {
+                try {
+                    const query = `
+                        SELECT id, email, display_name, is_admin, created_at, updated_at
+                        FROM users
+                        ORDER BY created_at DESC
+                    `;
+                    
+                    const result = await this.executeQuery(query);
+                    console.log('✅ [NEON] Users loaded successfully:', result);
+                    return result;
+                } catch (error) {
+                    console.error('❌ [NEON] Failed to load users:', error);
+                    return [];
+                }
+            }
+
+            async deleteUser(userId) {
+                try {
+                    const query = `
+                        DELETE FROM users
+                        WHERE id = $1
+                        RETURNING id, email
+                    `;
+                    
+                    const result = await this.executeQuery(query, [userId]);
+                    console.log('✅ [NEON] User deleted successfully:', result);
+                    return result;
+                } catch (error) {
+                    console.error('❌ [NEON] Failed to delete user:', error);
+                    throw error;
+                }
+            }
+
+            async getUserByEmail(email) {
+                try {
+                    const query = `
+                        SELECT id, email, display_name, is_admin, created_at
+                        FROM users
+                        WHERE email = $1
+                        LIMIT 1
+                    `;
+                    
+                    const result = await this.executeQuery(query, [email]);
+                    console.log('✅ [NEON] User found by email:', result);
+                    return result && result.length > 0 ? result[0] : null;
+                } catch (error) {
+                    console.error('❌ [NEON] Failed to find user by email:', error);
+                    return null;
+                }
+            }
         }
 
         // Updated React hook for managing week data
@@ -628,6 +724,8 @@
             const [isAdmin, setIsAdmin] = useState(false);
             const [authLoading, setAuthLoading] = useState(true);
             const [showAdmin, setShowAdmin] = useState(false); // Added showAdmin state
+        const [users, setUsers] = useState([]); // Added users state
+        const [userLoading, setUserLoading] = useState(false); // Added user loading state
 
             // Use the new useWeekData hook
             const currentWeekKey = formatWeekKey(currentDate);
@@ -638,7 +736,7 @@
 
 
 
-            // Test Neon connection after authentication is complete
+            // Test Neon connection and initialize users table after authentication is complete
             useEffect(() => {
                 if (authLoading) {
                     console.log('⏳ Waiting for authentication to complete...');
@@ -647,11 +745,31 @@
                 
                 console.log('🚀 Authentication complete, testing Neon connection...');
                 
-                // Test Neon connection after authentication
-                setTimeout(() => {
-                    // The useWeekData hook will handle data initialization
-                    console.log('✅ Ready to use Neon database');
-                }, 1000);
+                // Test Neon connection and initialize users table after authentication
+                const initializeNeonAndUsers = async () => {
+                    try {
+                        const dbManager = new NeonDatabaseManager();
+                        const connectionOk = await dbManager.testConnection();
+                        
+                        if (connectionOk) {
+                            console.log('✅ Ready to use Neon database');
+                            
+                            // Initialize users table
+                            await dbManager.createUsersTable();
+                            
+                            // Load existing users
+                            const existingUsers = await dbManager.getAllUsers();
+                            setUsers(existingUsers);
+                            console.log('✅ Users loaded:', existingUsers);
+                        } else {
+                            console.error('❌ Neon connection failed');
+                        }
+                    } catch (error) {
+                        console.error('❌ Neon initialization error:', error);
+                    }
+                };
+                
+                initializeNeonAndUsers();
             }, [authLoading]);
 
 
@@ -1031,6 +1149,25 @@
                                             >
                                                 Debug Data
                                             </button>
+                                            <button
+                                                onClick={async () => {
+                                                    try {
+                                                        setUserLoading(true);
+                                                        const dbManager = new NeonDatabaseManager();
+                                                        const refreshedUsers = await dbManager.getAllUsers();
+                                                        setUsers(refreshedUsers);
+                                                        alert(`✅ Users refreshed! Found ${refreshedUsers.length} users.`);
+                                                    } catch (error) {
+                                                        console.error('❌ Failed to refresh users:', error);
+                                                        alert(`❌ Failed to refresh users:\n\n${error.message}`);
+                                                    } finally {
+                                                        setUserLoading(false);
+                                                    }
+                                                }}
+                                                className="w-full px-3 py-2 bg-purple-500 text-white text-sm rounded hover:bg-purple-600 transition-colors"
+                                            >
+                                                🔄 Refresh Users
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
@@ -1042,19 +1179,36 @@
                                     {/* Add User Form */}
                                     <div className="mb-6">
                                         <h4 className="font-medium text-gray-700 mb-3">Add New User</h4>
-                                        <form onSubmit={(e) => {
+                                        <form onSubmit={async (e) => {
                                             e.preventDefault();
-                                            const formData = new FormData(e.target);
-                                            const email = formData.get('email');
-                                            const password = formData.get('password');
-                                            const displayName = formData.get('displayName');
+                                            setUserLoading(true);
                                             
-                                            // For development, we'll just show an alert
-                                            // In production, this would create a real user
-                                            alert(`Development Mode: Would create user:\nEmail: ${email}\nDisplay Name: ${displayName}\nPassword: ${password}\n\nNote: In production, this would create a real user account.`);
-                                            
-                                            // Reset form
-                                            e.target.reset();
+                                            try {
+                                                const formData = new FormData(e.target);
+                                                const email = formData.get('email');
+                                                const password = formData.get('password');
+                                                const displayName = formData.get('displayName');
+                                                
+                                                // Create user in database
+                                                const dbManager = new NeonDatabaseManager();
+                                                const newUser = await dbManager.createUser(email, displayName, password, false);
+                                                
+                                                if (newUser) {
+                                                    // Add to local state
+                                                    setUsers(prevUsers => [newUser[0], ...prevUsers]);
+                                                    
+                                                    // Show success message
+                                                    alert(`✅ User created successfully!\n\nEmail: ${email}\nDisplay Name: ${displayName}\n\nUser ID: ${newUser[0].id}`);
+                                                    
+                                                    // Reset form
+                                                    e.target.reset();
+                                                }
+                                            } catch (error) {
+                                                console.error('❌ Failed to create user:', error);
+                                                alert(`❌ Failed to create user:\n\n${error.message}`);
+                                            } finally {
+                                                setUserLoading(false);
+                                            }
                                         }} className="space-y-3">
                                             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                                                 <input
@@ -1081,27 +1235,75 @@
                                             </div>
                                             <button
                                                 type="submit"
-                                                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors"
+                                                disabled={userLoading}
+                                                className={`px-4 py-2 rounded-lg transition-colors ${
+                                                    userLoading 
+                                                        ? 'bg-gray-400 cursor-not-allowed' 
+                                                        : 'bg-green-600 hover:bg-green-700'
+                                                } text-white`}
                                             >
-                                                ➕ Add User
+                                                {userLoading ? '⏳ Creating...' : '➕ Add User'}
                                             </button>
                                         </form>
                                     </div>
                                     
                                     {/* User List */}
                                     <div>
-                                        <h4 className="font-medium text-gray-700 mb-3">Current Users</h4>
+                                        <h4 className="font-medium text-gray-700 mb-3">Current Users ({users.length})</h4>
                                         <div className="bg-gray-50 p-4 rounded-lg">
-                                            <div className="text-sm text-gray-600">
-                                                <div className="flex justify-between items-center py-2 border-b border-gray-200">
-                                                    <span><strong>Email:</strong> {user?.email || 'Current User'}</span>
-                                                    <span className="text-blue-600 font-medium">Admin</span>
+                                            {userLoading ? (
+                                                <div className="text-center py-4">
+                                                    <div className="text-gray-500">Loading users...</div>
                                                 </div>
-                                                <div className="text-xs text-gray-500 mt-2">
-                                                    Note: In development mode, user management is simulated. 
-                                                    Real user creation would require production authentication setup.
+                                            ) : users.length === 0 ? (
+                                                <div className="text-center py-4">
+                                                    <div className="text-gray-500">No users found. Create your first user above!</div>
                                                 </div>
-                                            </div>
+                                            ) : (
+                                                <div className="space-y-2">
+                                                    {users.map((userItem) => (
+                                                        <div key={userItem.id} className="flex justify-between items-center py-2 border-b border-gray-200 last:border-b-0">
+                                                            <div className="flex-1">
+                                                                <div className="font-medium text-gray-800">{userItem.display_name}</div>
+                                                                <div className="text-sm text-gray-600">{userItem.email}</div>
+                                                                <div className="text-xs text-gray-500">
+                                                                    Created: {new Date(userItem.created_at).toLocaleDateString()}
+                                                                </div>
+                                                            </div>
+                                                            <div className="flex items-center gap-2">
+                                                                {userItem.is_admin && (
+                                                                    <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
+                                                                        Admin
+                                                                    </span>
+                                                                )}
+                                                                <button
+                                                                    onClick={async () => {
+                                                                        if (confirm(`Are you sure you want to delete user "${userItem.display_name}"?`)) {
+                                                                            try {
+                                                                                const dbManager = new NeonDatabaseManager();
+                                                                                await dbManager.deleteUser(userItem.id);
+                                                                                
+                                                                                // Remove from local state
+                                                                                setUsers(prevUsers => 
+                                                                                    prevUsers.filter(u => u.id !== userItem.id)
+                                                                                );
+                                                                                
+                                                                                alert(`✅ User "${userItem.display_name}" deleted successfully!`);
+                                                                            } catch (error) {
+                                                                                console.error('❌ Failed to delete user:', error);
+                                                                                alert(`❌ Failed to delete user:\n\n${error.message}`);
+                                                                            }
+                                                                        }
+                                                                    }}
+                                                                    className="px-2 py-1 bg-red-100 text-red-700 text-xs rounded hover:bg-red-200 transition-colors"
+                                                                >
+                                                                    🗑️ Delete
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 </div>

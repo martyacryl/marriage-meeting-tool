@@ -2594,19 +2594,184 @@
                                         color="purple"
                                     />
                                     
-                                    <ListSection 
-                                        id="goals-section"
-                                        title="🎯 Goals" 
-                                        subtitle="Dreams and aspirations"
-                                        listType="goals" 
-                                        items={currentWeekData.goals || []} 
-                                        onUpdate={updateListItem}
-                                        onAdd={addListItem}
-                                        onToggle={toggleListItem}
-                                        onRemove={removeListItem}
-                                        placeholder="Add a new goal..."
-                                        color="green"
-                                    />
+                                    {/* Goals Timeline Section - Matching Dashboard Structure */}
+                                    <div id="goals-section" className="xl:col-span-2 2xl:col-span-3">
+                                        <div className="modern-card p-6">
+                                            <div className="text-center mb-6">
+                                                <h3 className="text-lg font-semibold text-gray-800 mb-1">🎯 Goals Timeline</h3>
+                                                <p className="text-sm text-gray-600">Your family's short and long-term aspirations</p>
+                                            </div>
+                                            
+                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                                                {/* 1 Year Goals */}
+                                                <div className="bg-white p-4 rounded-lg border border-gray-200">
+                                                    <h4 className="font-semibold text-gray-800 mb-3 text-center">1 Year</h4>
+                                                    <div className="space-y-2 mb-3">
+                                                        {(currentWeekData.goals || []).slice(0, 3).map((goal, index) => {
+                                                            const goalText = typeof goal === 'object' ? goal.text : goal;
+                                                            const isCompleted = typeof goal === 'object' ? goal.completed : false;
+                                                            
+                                                            return (
+                                                                <div key={index} className="flex items-center gap-2">
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={(e) => {
+                                                                            e.preventDefault();
+                                                                            toggleListItem('goals', goal.id || index);
+                                                                        }}
+                                                                        className={`w-4 h-4 rounded border-2 flex items-center justify-center ${
+                                                                            isCompleted 
+                                                                                ? 'bg-green-500 border-green-500 text-white' 
+                                                                                : 'border-gray-300'
+                                                                        }`}
+                                                                    >
+                                                                        {isCompleted && '✓'}
+                                                                    </button>
+                                                                    <span className={`text-sm ${isCompleted ? 'line-through text-gray-500' : 'text-gray-700'}`}>
+                                                                        {goalText}
+                                                                    </span>
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                    <div className="text-center">
+                                                        <button
+                                                            type="button"
+                                                            onClick={(e) => {
+                                                                e.preventDefault();
+                                                                addListItem('goals', 'New 1-year goal...');
+                                                            }}
+                                                            className="w-full px-3 py-2 bg-green-100 text-green-700 rounded hover:bg-green-200 transition-colors text-sm"
+                                                        >
+                                                            + Add Goal
+                                                        </button>
+                                                    </div>
+                                                </div>
+
+                                                {/* 5 Year Goals */}
+                                                <div className="bg-white p-4 rounded-lg border border-gray-200">
+                                                    <h4 className="font-semibold text-gray-800 mb-3 text-center">5 Years</h4>
+                                                    <div className="space-y-2 mb-3">
+                                                        {(currentWeekData.goals || []).slice(3, 6).map((goal, index) => {
+                                                            const goalText = typeof goal === 'object' ? goal.text : goal;
+                                                            const isCompleted = typeof goal === 'object' ? goal.completed : false;
+                                                            
+                                                            return (
+                                                                <div key={index + 3} className="flex items-center gap-2">
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={(e) => {
+                                                                            e.preventDefault();
+                                                                            toggleListItem('goals', goal.id || (index + 3));
+                                                                        }}
+                                                                        className={`w-4 h-4 rounded border-2 flex items-center justify-center ${
+                                                                            isCompleted 
+                                                                                ? 'bg-green-500 border-green-500 text-white' 
+                                                                                : 'border-gray-300'
+                                                                        }`}
+                                                                    >
+                                                                        {isCompleted && '✓'}
+                                                                    </button>
+                                                                    <span className={`text-sm ${isCompleted ? 'line-through text-gray-500' : 'text-gray-700'}`}>
+                                                                        {goalText}
+                                                                    </span>
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                    <div className="text-center">
+                                                        <button
+                                                            type="button"
+                                                            onClick={(e) => {
+                                                                e.preventDefault();
+                                                                addListItem('goals', 'New 5-year goal...');
+                                                            }}
+                                                            className="w-full px-3 py-2 bg-green-100 text-green-700 rounded hover:bg-green-200 transition-colors text-sm"
+                                                        >
+                                                            + Add Goal
+                                                        </button>
+                                                    </div>
+                                                </div>
+
+                                                {/* 10 Year Goals */}
+                                                <div className="bg-white p-4 rounded-lg border border-gray-200">
+                                                    <h4 className="font-semibold text-gray-800 mb-3 text-center">10 Years</h4>
+                                                    <div className="space-y-2 mb-3">
+                                                        {(currentWeekData.goals || []).slice(6, 9).map((goal, index) => {
+                                                            const goalText = typeof goal === 'object' ? goal.text : goal;
+                                                            const isCompleted = typeof goal === 'object' ? goal.completed : false;
+                                                            
+                                                            return (
+                                                                <div key={index + 6} className="flex items-center gap-2">
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={(e) => {
+                                                                            e.preventDefault();
+                                                                            toggleListItem('goals', goal.id || (index + 6));
+                                                                        }}
+                                                                        className={`w-4 h-4 rounded border-2 flex items-center justify-center ${
+                                                                            isCompleted 
+                                                                                ? 'bg-green-500 border-green-500 text-white' 
+                                                                                : 'border-gray-300'
+                                                                        }`}
+                                                                    >
+                                                                        {isCompleted && '✓'}
+                                                                    </button>
+                                                                    <span className={`text-sm ${isCompleted ? 'line-through text-gray-500' : 'text-gray-700'}`}>
+                                                                        {goalText}
+                                                                    </span>
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                    <div className="text-center">
+                                                        <button
+                                                            type="button"
+                                                            onClick={(e) => {
+                                                                e.preventDefault();
+                                                                addListItem('goals', 'New 10-year goal...');
+                                                            }}
+                                                            className="w-full px-3 py-2 bg-green-100 text-green-700 rounded hover:bg-green-200 transition-colors text-sm"
+                                                        >
+                                                            + Add Goal
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Quick Add Goal */}
+                                            <div className="bg-gray-50 p-4 rounded-lg">
+                                                <h4 className="font-medium text-gray-800 mb-3 text-center">Quick Add Goal</h4>
+                                                <div className="flex gap-3">
+                                                    <input
+                                                        type="text"
+                                                        placeholder="Enter your goal..."
+                                                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                                                        onKeyPress={(e) => {
+                                                            if (e.key === 'Enter' && e.target.value.trim()) {
+                                                                addListItem('goals', e.target.value.trim());
+                                                                e.target.value = '';
+                                                            }
+                                                        }}
+                                                    />
+                                                    <button
+                                                        type="button"
+                                                        onClick={(e) => {
+                                                            e.preventDefault();
+                                                            const input = e.target.previousElementSibling;
+                                                            if (input.value.trim()) {
+                                                                addListItem('goals', input.value.trim());
+                                                                input.value = '';
+                                                            }
+                                                        }}
+                                                        className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
+                                                    >
+                                                        Add
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
                                     
                                     <ListSection 
                                         id="grocery-section"

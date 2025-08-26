@@ -1042,13 +1042,21 @@
                                 />
                                 <div className="flex justify-center gap-4">
                                     <button
-                                        onClick={handleVisionSave}
+                                        type="button"
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            handleVisionSave();
+                                        }}
                                         className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
                                     >
                                         Save Vision
                                     </button>
                                     <button
-                                        onClick={handleVisionCancel}
+                                        type="button"
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            handleVisionCancel();
+                                        }}
                                         className="px-6 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
                                     >
                                         Cancel
@@ -1061,7 +1069,11 @@
                                     "{familyVision}"
                                 </div>
                                 <button
-                                    onClick={() => setIsEditingVision(true)}
+                                    type="button"
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        setIsEditingVision(true);
+                                    }}
                                     className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
                                 >
                                     Edit Vision Statement
@@ -1121,7 +1133,11 @@
                                 </p>
                             </div>
                             <button
-                                onClick={onNavigateToTodos}
+                                type="button"
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    onNavigateToTodos();
+                                }}
                                 className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
                             >
                                 View All To-Dos →
@@ -1175,7 +1191,11 @@
                                 </p>
                             </div>
                             <button
-                                onClick={onNavigateToList}
+                                type="button"
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    onNavigateToList();
+                                }}
                                 className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
                             >
                                 View All Lists →
@@ -1200,7 +1220,11 @@
                                     })}
                                 </div>
                                 <button
-                                    onClick={onNavigateToList}
+                                    type="button"
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        onNavigateToList();
+                                    }}
                                     className="w-full px-3 py-2 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors text-sm"
                                 >
                                     View/Edit →
@@ -1224,7 +1248,11 @@
                                     })}
                                 </div>
                                 <button
-                                    onClick={onNavigateToList}
+                                    type="button"
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        onNavigateToList();
+                                    }}
                                     className="w-full px-3 py-2 bg-purple-100 text-purple-700 rounded hover:bg-purple-200 transition-colors text-sm"
                                 >
                                     View/Edit →
@@ -1248,7 +1276,11 @@
                                     })}
                                 </div>
                                 <button
-                                    onClick={onNavigateToList}
+                                    type="button"
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        onNavigateToGoals();
+                                    }}
                                     className="w-full px-3 py-2 bg-green-100 text-green-700 rounded hover:bg-green-200 transition-colors text-sm"
                                 >
                                     View/Edit →
@@ -1272,7 +1304,11 @@
                                     })}
                                 </div>
                                 <button
-                                    onClick={onNavigateToList}
+                                    type="button"
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        onNavigateToList();
+                                    }}
                                     className="w-full px-3 py-2 bg-orange-100 text-orange-700 rounded hover:bg-orange-200 transition-colors text-sm"
                                 >
                                     View/Edit →
@@ -1296,7 +1332,11 @@
                                     })}
                                 </div>
                                 <button
-                                    onClick={onNavigateToList}
+                                    type="button"
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        onNavigateToList();
+                                    }}
                                     className="w-full px-3 py-2 bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors text-sm"
                                 >
                                     View/Edit →
@@ -1320,7 +1360,11 @@
                                     })}
                                 </div>
                                 <button
-                                    onClick={onNavigateToList}
+                                    type="button"
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        onNavigateToList();
+                                    }}
                                     className="w-full px-3 py-2 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors text-sm"
                                 >
                                     View/Edit →
@@ -1341,7 +1385,11 @@
                                 </p>
                             </div>
                             <button
-                                onClick={onNavigateToGoals}
+                                type="button"
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    onNavigateToGoals();
+                                }}
                                 className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
                             >
                                 View All Goals →
@@ -1356,7 +1404,11 @@
                                     {goals.oneYear.map((goal) => (
                                         <div key={goal.id} className="flex items-center gap-2">
                                             <button
-                                                onClick={() => toggleGoal('oneYear', goal.id)}
+                                                type="button"
+                                                onClick={(e) => {
+                                                    e.preventDefault();
+                                                    toggleGoal('oneYear', goal.id);
+                                                }}
                                                 className={`w-4 h-4 rounded border-2 flex items-center justify-center ${
                                                     goal.completed 
                                                         ? 'bg-green-500 border-green-500 text-white' 
@@ -1369,7 +1421,11 @@
                                                 {goal.text}
                                             </span>
                                             <button
-                                                onClick={() => removeGoal('oneYear', goal.id)}
+                                                type="button"
+                                                onClick={(e) => {
+                                                    e.preventDefault();
+                                                    removeGoal('oneYear', goal.id);
+                                                }}
                                                 className="text-red-500 hover:text-red-700 text-xs ml-auto"
                                             >
                                                 ×
@@ -1386,7 +1442,11 @@
                                     {goals.fiveYear.map((goal) => (
                                         <div key={goal.id} className="flex items-center gap-2">
                                             <button
-                                                onClick={() => toggleGoal('fiveYear', goal.id)}
+                                                type="button"
+                                                onClick={(e) => {
+                                                    e.preventDefault();
+                                                    toggleGoal('fiveYear', goal.id);
+                                                }}
                                                 className={`w-4 h-4 rounded border-2 flex items-center justify-center ${
                                                     goal.completed 
                                                         ? 'bg-green-500 border-green-500 text-white' 
@@ -1399,7 +1459,11 @@
                                                 {goal.text}
                                             </span>
                                             <button
-                                                onClick={() => removeGoal('fiveYear', goal.id)}
+                                                type="button"
+                                                onClick={(e) => {
+                                                    e.preventDefault();
+                                                    removeGoal('fiveYear', goal.id);
+                                                }}
                                                 className="text-red-500 hover:text-red-700 text-xs ml-auto"
                                             >
                                                 ×
@@ -1416,7 +1480,11 @@
                                     {goals.tenYear.map((goal) => (
                                         <div key={goal.id} className="flex items-center gap-2">
                                             <button
-                                                onClick={() => toggleGoal('tenYear', goal.id)}
+                                                type="button"
+                                                onClick={(e) => {
+                                                    e.preventDefault();
+                                                    toggleGoal('tenYear', goal.id);
+                                                }}
                                                 className={`w-4 h-4 rounded border-2 flex items-center justify-center ${
                                                     goal.completed 
                                                         ? 'bg-green-500 border-green-500 text-white' 
@@ -1429,7 +1497,11 @@
                                                 {goal.text}
                                             </span>
                                             <button
-                                                onClick={() => removeGoal('tenYear', goal.id)}
+                                                type="button"
+                                                onClick={(e) => {
+                                                    e.preventDefault();
+                                                    removeGoal('tenYear', goal.id);
+                                                }}
                                                 className="text-red-500 hover:text-red-700 text-xs ml-auto"
                                             >
                                                 ×
@@ -1459,10 +1531,19 @@
                                     onChange={(e) => setNewGoal(prev => ({ ...prev, text: e.target.value }))}
                                     placeholder="Enter your goal..."
                                     className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                                    onKeyPress={(e) => e.key === 'Enter' && addGoal()}
+                                    onKeyPress={(e) => {
+                                        if (e.key === 'Enter') {
+                                            e.preventDefault();
+                                            addGoal();
+                                        }
+                                    }}
                                 />
                                 <button
-                                    onClick={addGoal}
+                                    type="button"
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        addGoal();
+                                    }}
                                     className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
                                 >
                                     Add Goal
@@ -1503,7 +1584,15 @@
                         </div>
                         
                         <div className="text-center mt-6">
-                            <button className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors">
+                            <button 
+                                type="button"
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    // TODO: Implement detailed progress report
+                                    console.log('Detailed progress report clicked');
+                                }}
+                                className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
+                            >
                                 View Detailed Progress Report →
                             </button>
                         </div>
@@ -2292,7 +2381,11 @@
                         <div className="flex justify-center mb-8">
                             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-1">
                                 <button
-                                    onClick={() => setShowDashboard(false)}
+                                    type="button"
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        setShowDashboard(false);
+                                    }}
                                     className={`px-6 py-3 rounded-md transition-colors ${
                                         !showDashboard 
                                             ? 'bg-primary text-white shadow-sm' 
@@ -2302,7 +2395,11 @@
                                     📅 Weekly Schedule
                                 </button>
                                 <button
-                                    onClick={() => setShowDashboard(true)}
+                                    type="button"
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        setShowDashboard(true);
+                                    }}
                                     className={`px-6 py-3 rounded-md transition-colors ${
                                         showDashboard 
                                             ? 'bg-primary text-white shadow-sm' 

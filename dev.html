@@ -875,6 +875,11 @@
                             await dbManager.createUser('matt@gmail.com', 'Matt', 'matt123', false);
                             
                             console.log('✅ Users table reset with: stjohnashlynn@gmail.com (admin), sam@gmail.com, matt@gmail.com');
+                            
+                            // Verify the users were created by querying the table
+                            const verifyQuery = 'SELECT id, email, display_name, is_admin FROM users ORDER BY created_at DESC';
+                            const verifyResult = await dbManager.executeQuery(verifyQuery);
+                            console.log('🔍 Verification - Users in table:', verifyResult);
                             }
                             
                             // Load existing users

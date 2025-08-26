@@ -862,16 +862,19 @@
                             } else {
                                 console.log('✅ Default admin user already exists in database');
                                 
-                                // Check if the admin user has a numeric ID (should be UUID)
-                                if (existingAdmin.id && typeof existingAdmin.id === 'number') {
-                                    console.log('⚠️ Admin user has numeric ID, regenerating with UUID...');
-                                    
-                                    // Delete the old user and recreate with UUID
-                                    await dbManager.deleteUser(existingAdmin.id);
-                                    await dbManager.createUser(currentAdminEmail, 'St. John Admin', 'admin123', true);
-                                    
-                                    console.log('✅ Admin user regenerated with UUID');
-                                }
+                                                            // Reset users table to known good state
+                            console.log('🔄 Resetting users table to known good state...');
+                            
+                            // Clear all existing users
+                            await this.executeQuery('DELETE FROM users');
+                            console.log('✅ Cleared all existing users');
+                            
+                            // Recreate the three known users
+                            await dbManager.createUser('stjohnashlynn@gmail.com', 'St. John Admin', 'admin123', true);
+                            await dbManager.createUser('sam@gmail.com', 'Sam', 'sam123', false);
+                            await dbManager.createUser('matt@gmail.com', 'Matt', 'matt123', false);
+                            
+                            console.log('✅ Users table reset with: stjohnashlynn@gmail.com (admin), sam@gmail.com, matt@gmail.com');
                             }
                             
                             // Load existing users

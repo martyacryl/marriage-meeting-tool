@@ -866,7 +866,7 @@
                             console.log('🔄 Resetting users table to known good state...');
                             
                             // Clear all existing users
-                            await this.executeQuery('DELETE FROM users');
+                            await dbManager.executeQuery('DELETE FROM users');
                             console.log('✅ Cleared all existing users');
                             
                             // Recreate the three known users

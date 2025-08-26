@@ -799,7 +799,7 @@
         };
 
         // List Section Component
-        const ListSection = ({ title, subtitle, listType, items, onUpdate, onAdd, onToggle, onRemove, placeholder, color }) => {
+        const ListSection = ({ id, title, subtitle, listType, items, onUpdate, onAdd, onToggle, onRemove, placeholder, color }) => {
             const [newItem, setNewItem] = useState('');
             const [editingIndex, setEditingIndex] = useState(null);
             const [editValue, setEditValue] = useState('');
@@ -839,7 +839,7 @@
             };
 
             return (
-                <div className="modern-card p-6">
+                <div id={id} className="modern-card p-6">
                     <div className="text-center mb-4">
                         <h3 className="text-lg font-semibold text-gray-800 mb-1">{title}</h3>
                         <p className="text-sm text-gray-600">{subtitle}</p>
@@ -936,7 +936,7 @@
         };
 
         // Family Dashboard Component
-        const FamilyDashboard = ({ weekData, onNavigateToList, onNavigateToGoals, onNavigateToTodos }) => {
+        const FamilyDashboard = ({ weekData, onNavigateToTodos, onNavigateToPrayers, onNavigateToGoals, onNavigateToGrocery, onNavigateToUnconfessedSin, onNavigateToWeeklyWinddown }) => {
             const [familyVision, setFamilyVision] = useState("We are a family committed to love, growth, and intentional living. We support each other's dreams, communicate openly, and build a home filled with joy, learning, and meaningful experiences.");
             const [isEditingVision, setIsEditingVision] = useState(false);
             const [visionEditValue, setVisionEditValue] = useState(familyVision);
@@ -1194,7 +1194,7 @@
                                 type="button"
                                 onClick={(e) => {
                                     e.preventDefault();
-                                    onNavigateToList();
+                                    onNavigateToTodos();
                                 }}
                                 className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
                             >
@@ -1223,7 +1223,7 @@
                                     type="button"
                                     onClick={(e) => {
                                         e.preventDefault();
-                                        onNavigateToList();
+                                        onNavigateToTodos();
                                     }}
                                     className="w-full px-3 py-2 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors text-sm"
                                 >
@@ -1251,7 +1251,7 @@
                                     type="button"
                                     onClick={(e) => {
                                         e.preventDefault();
-                                        onNavigateToList();
+                                        onNavigateToPrayers();
                                     }}
                                     className="w-full px-3 py-2 bg-purple-100 text-purple-700 rounded hover:bg-purple-200 transition-colors text-sm"
                                 >
@@ -1307,7 +1307,7 @@
                                     type="button"
                                     onClick={(e) => {
                                         e.preventDefault();
-                                        onNavigateToList();
+                                        onNavigateToGrocery();
                                     }}
                                     className="w-full px-3 py-2 bg-orange-100 text-orange-700 rounded hover:bg-orange-200 transition-colors text-sm"
                                 >
@@ -1335,7 +1335,7 @@
                                     type="button"
                                     onClick={(e) => {
                                         e.preventDefault();
-                                        onNavigateToList();
+                                        onNavigateToUnconfessedSin();
                                     }}
                                     className="w-full px-3 py-2 bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors text-sm"
                                 >
@@ -1363,7 +1363,7 @@
                                     type="button"
                                     onClick={(e) => {
                                         e.preventDefault();
-                                        onNavigateToList();
+                                        onNavigateToWeeklyWinddown();
                                     }}
                                     className="w-full px-3 py-2 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors text-sm"
                                 >
@@ -1614,6 +1614,7 @@
             const [users, setUsers] = useState([]); // Added users state
             const [userLoading, setUserLoading] = useState(false); // Added user loading state
             const [showDashboard, setShowDashboard] = useState(false); // Added dashboard toggle state
+            const [scrollToSection, setScrollToSection] = useState(null); // Added scroll target state
 
             // Use the new useWeekData hook - only load data when user is authenticated
             const currentWeekKey = formatWeekKey(currentDate);
@@ -1628,9 +1629,40 @@
             const hookKey = currentUserId || 'no-user';
             const { weekData, setWeekData, isLoading, error, manualSave } = useWeekData(currentWeekKey, currentUserId);
 
+            // Scroll to specific section when navigating from dashboard
+            useEffect(() => {
+                if (scrollToSection && !showDashboard) {
+                    setTimeout(() => {
+                        const element = document.getElementById(scrollToSection);
+                        if (element) {
+                            element.scrollIntoView({ 
+                                behavior: 'smooth', 
+                                block: 'start',
+                                inline: 'nearest'
+                            });
+                            // Highlight the section briefly
+                            element.classList.add('ring-4', 'ring-primary', 'ring-opacity-50');
+                            setTimeout(() => {
+                                element.classList.remove('ring-4', 'ring-primary', 'ring-opacity-50');
+                            }, 2000);
+                        }
+                        setScrollToSection(null);
+                    }, 100);
+                }
+            }, [scrollToSection, showDashboard]);
 
+            // Navigation functions for dashboard
+            const navigateToSection = (sectionId) => {
+                setShowDashboard(false);
+                setScrollToSection(sectionId);
+            };
 
-
+            const navigateToTodos = () => navigateToSection('todos-section');
+            const navigateToPrayers = () => navigateToSection('prayers-section');
+            const navigateToGoals = () => navigateToSection('goals-section');
+            const navigateToGrocery = () => navigateToSection('grocery-section');
+            const navigateToUnconfessedSin = () => navigateToSection('unconfessed-sin-section');
+            const navigateToWeeklyWinddown = () => navigateToSection('weekly-winddown-section');
 
             // Test Neon connection and initialize users table after authentication is complete
             useEffect(() => {
@@ -2307,16 +2339,16 @@
                                                                                     prevUsers.filter(u => u.id !== userItem.id)
                                                                                 );
                                                                                 
-                                                                                alert(`✅ User "${userItem.display_name}" deleted successfully!`);
+                                                                                alert(`✅ User deleted successfully`);
                                                                             } catch (error) {
                                                                                 console.error('❌ Failed to delete user:', error);
-                                                                                alert(`❌ Failed to delete user:\n\n${error.message}`);
+                                                                                alert('❌ Failed to delete user: ' + error.message);
                                                                             }
                                                                         }
                                                                     }}
-                                                                    className="px-2 py-1 bg-red-100 text-red-700 text-xs rounded hover:bg-red-200 transition-colors"
+                                                                    className="text-red-500 hover:text-red-700 text-xs"
                                                                 >
-                                                                    🗑️ Delete
+                                                                    ×
                                                                 </button>
                                                             </div>
                                                         </div>
@@ -2325,52 +2357,6 @@
                                             )}
                                         </div>
                                     </div>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* User Info and Sign Out */}
-                        <div className="flex justify-between items-center mb-6 p-4 bg-white rounded-lg shadow-sm">
-                            <div className="text-left">
-                                {user && (
-                                    <div className="text-sm text-gray-600">
-                                        Signed in as: {user.email}
-                                    </div>
-                                )}
-                            </div>
-                            
-                            <div className="flex items-center gap-4">
-                                {/* Sign Out Button */}
-                                <button
-                                    onClick={async () => {
-                                        try {
-                                            // Clear authenticated user
-                                            setUser(null);
-                                            setIsAdmin(false);
-                                            window.currentAuthenticatedUser = null;
-                                            
-                                            // Clear stored authentication
-                                            localStorage.removeItem('marriageMeetingAuth');
-                                            console.log('✅ User signed out and authentication cleared');
-                                        } catch (error) {
-                                            console.error('Sign out error:', error);
-                                        }
-                                    }}
-                                    className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-colors"
-                                >
-                                    Sign Out
-                                </button>
-                                
-                                <div className="text-right text-sm">
-                                    <div className="text-green-600">
-                                        <div className="w-2 h-2 rounded-full bg-green-500 mx-auto mb-1"></div>
-                                        Synced
-                                    </div>
-                                    {lastSaved && (
-                                        <div className="text-gray-500">
-                                            Last saved: {lastSaved.toLocaleTimeString()}
-                                        </div>
-                                    )}
                                 </div>
                             </div>
                         </div>
@@ -2415,9 +2401,12 @@
                         {showDashboard ? (
                             <FamilyDashboard 
                                 weekData={currentWeekData}
-                                onNavigateToList={() => setShowDashboard(false)}
-                                onNavigateToGoals={() => setShowDashboard(false)}
-                                onNavigateToTodos={() => setShowDashboard(false)}
+                                onNavigateToTodos={navigateToTodos}
+                                onNavigateToPrayers={navigateToPrayers}
+                                onNavigateToGoals={navigateToGoals}
+                                onNavigateToGrocery={navigateToGrocery}
+                                onNavigateToUnconfessedSin={navigateToUnconfessedSin}
+                                onNavigateToWeeklyWinddown={navigateToWeeklyWinddown}
                             />
                         ) : (
                             <>
@@ -2490,6 +2479,7 @@
                                 {/* Lists Section */}
                                 <div className="grid grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 gap-8">
                                     <ListSection 
+                                        id="todos-section"
                                         title="✅ To-Do List" 
                                         subtitle="Tasks and action items"
                                         listType="todos" 
@@ -2503,6 +2493,7 @@
                                     />
                                     
                                     <ListSection 
+                                        id="prayers-section"
                                         title="🙏 Prayer List" 
                                         subtitle="Prayers and requests"
                                         listType="prayers" 
@@ -2516,6 +2507,7 @@
                                     />
                                     
                                     <ListSection 
+                                        id="goals-section"
                                         title="🎯 Goals" 
                                         subtitle="Dreams and aspirations"
                                         listType="goals" 
@@ -2529,6 +2521,7 @@
                                     />
                                     
                                     <ListSection 
+                                        id="grocery-section"
                                         title="🛒 Grocery List" 
                                         subtitle="Shopping and supplies"
                                         listType="grocery" 
@@ -2542,6 +2535,7 @@
                                     />
                                     
                                     <ListSection 
+                                        id="unconfessed-sin-section"
                                         title="💭 Unconfessed Sin" 
                                         subtitle="Accountability and grace"
                                         listType="unconfessedSin" 
@@ -2555,6 +2549,7 @@
                                     />
                                     
                                     <ListSection 
+                                        id="weekly-winddown-section"
                                         title="🌙 Weekly Winddown" 
                                         subtitle="Weekly relaxation plan together"
                                         listType="weeklyWinddown" 
@@ -2580,94 +2575,6 @@
                                 </div>
                             </>
                         )}
-                    </div>
-                </div>
-            );
-        };
-
-        // Schedule Day Component with local state for inputs
-        const ScheduleDay = ({ day, items, onUpdate, onAddLine, onRemoveLine }) => {
-            const [localInputs, setLocalInputs] = useState({});
-
-            // Initialize local inputs when items change
-            useEffect(() => {
-                const newLocalInputs = {};
-                items.forEach((item, index) => {
-                    newLocalInputs[index] = item;
-                });
-                setLocalInputs(newLocalInputs);
-            }, [items]);
-
-            const handleInputChange = (index, value) => {
-                setLocalInputs(prev => ({ ...prev, [index]: value }));
-            };
-
-            const handleInputBlur = (index) => {
-                const localValue = localInputs[index];
-                const currentItem = items[index];
-                if (localValue !== undefined && currentItem !== localValue) {
-                    onUpdate(day, index, localValue);
-                }
-            };
-
-            const autoResize = (e) => {
-                e.target.style.height = 'auto';
-                e.target.style.height = e.target.scrollHeight + 'px';
-            };
-
-            const dayColors = {
-                Monday: 'border-slate-300 focus:border-slate-500 focus:ring-slate-200',
-                Tuesday: 'border-slate-400 focus:border-slate-600 focus:ring-slate-200',
-                Wednesday: 'border-purple-300 focus:border-purple-500 focus:ring-purple-200',
-                Thursday: 'border-purple-400 focus:border-purple-600 focus:ring-purple-200',
-                Friday: 'border-purple-500 focus:border-purple-700 focus:ring-purple-200',
-                Saturday: 'border-purple-600 focus:border-purple-800 focus:ring-purple-200',
-                Sunday: 'border-purple-700 focus:border-purple-900 focus:ring-purple-200'
-            };
-
-            return (
-                <div className="modern-card p-8 min-h-[350px] flex flex-col w-full">
-                    <div className="text-center mb-6">
-                        <h3 className="font-bold text-gray-800 text-xl mb-3">
-                            {day}
-                        </h3>
-                        <div className="w-full h-px bg-gradient-to-r from-transparent via-purple-300 to-transparent"></div>
-                    </div>
-                    
-                    <div className="space-y-4 flex-1">
-                        {items.map((line, index) => (
-                            <div key={index} className="relative group">
-                                <textarea
-                                    value={localInputs[index] !== undefined ? localInputs[index] : line}
-                                    onChange={(e) => {
-                                        handleInputChange(index, e.target.value);
-                                        autoResize(e);
-                                    }}
-                                    onBlur={() => handleInputBlur(index)}
-                                    onInput={autoResize}
-                                    className={`w-full text-base border-2 ${dayColors[day]} rounded-xl px-5 py-4 resize-none overflow-hidden min-h-[4rem] focus:outline-none focus:ring-2 focus:ring-current transition-all duration-200 placeholder-gray-400`}
-                                    placeholder={`What's planned for ${day}?`}
-                                    rows="1"
-                                />
-                                {items.length > 1 && (
-                                    <button
-                                        onClick={() => onRemoveLine(index)}
-                                        className="absolute right-3 top-3 opacity-0 group-hover:opacity-100 text-red-500 hover:text-red-700 p-2 bg-white rounded-full shadow-lg transition-all duration-200 hover:scale-110"
-                                        title="Remove line"
-                                    >
-                                        ✕
-                                    </button>
-                                )}
-                            </div>
-                        ))}
-                        
-                        <button
-                            onClick={() => onAddLine()}
-                            className="w-full text-base text-gray-600 hover:text-purple-700 py-4 border-2 border-dashed border-gray-300 hover:border-purple-400 rounded-xl transition-all duration-200 flex items-center justify-center gap-3 hover:bg-purple-50 font-medium"
-                        >
-                            <PlusIcon />
-                            Add another line
-                        </button>
                     </div>
                 </div>
             );

@@ -862,24 +862,8 @@
                             } else {
                                 console.log('✅ Default admin user already exists in database');
                                 
-                                                            // Reset users table to known good state
-                            console.log('🔄 Resetting users table to known good state...');
-                            
-                            // Clear all existing users
-                            await dbManager.executeQuery('DELETE FROM users');
-                            console.log('✅ Cleared all existing users');
-                            
-                            // Recreate the three known users
-                            await dbManager.createUser('stjohnashlynn@gmail.com', 'St. John Admin', 'admin123', true);
-                            await dbManager.createUser('sam@gmail.com', 'Sam', 'sam123', false);
-                            await dbManager.createUser('matt@gmail.com', 'Matt', 'matt123', false);
-                            
-                            console.log('✅ Users table reset with: stjohnashlynn@gmail.com (admin), sam@gmail.com, matt@gmail.com');
-                            
-                            // Verify the users were created by querying the table
-                            const verifyQuery = 'SELECT id, email, display_name, is_admin FROM users ORDER BY created_at DESC';
-                            const verifyResult = await dbManager.executeQuery(verifyQuery);
-                            console.log('🔍 Verification - Users in table:', verifyResult);
+                                                            // Only create admin user if it doesn't exist (don't reset the table)
+                            console.log('✅ Admin user already exists in database');
                             }
                             
                             // Load existing users

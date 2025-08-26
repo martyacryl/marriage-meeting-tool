@@ -798,6 +798,720 @@
             );
         };
 
+        // List Section Component
+        const ListSection = ({ title, subtitle, listType, items, onUpdate, onAdd, onToggle, onRemove, placeholder, color }) => {
+            const [newItem, setNewItem] = useState('');
+            const [editingIndex, setEditingIndex] = useState(null);
+            const [editValue, setEditValue] = useState('');
+
+            const colorClasses = {
+                blue: 'border-blue-200 bg-blue-50',
+                purple: 'border-purple-200 bg-purple-50',
+                green: 'border-green-200 bg-green-50',
+                orange: 'border-orange-200 bg-orange-50',
+                red: 'border-red-200 bg-red-50'
+            };
+
+            const handleAdd = () => {
+                if (newItem.trim()) {
+                    onAdd(listType, newItem.trim());
+                    setNewItem('');
+                }
+            };
+
+            const handleEdit = (index) => {
+                setEditingIndex(index);
+                setEditValue(items[index]?.text || items[index] || '');
+            };
+
+            const handleSaveEdit = () => {
+                if (editValue.trim()) {
+                    const itemId = items[editingIndex]?.id || editingIndex;
+                    onUpdate(listType, itemId, editValue.trim());
+                    setEditingIndex(null);
+                    setEditValue('');
+                }
+            };
+
+            const handleCancelEdit = () => {
+                setEditingIndex(null);
+                setEditValue('');
+            };
+
+            return (
+                <div className="modern-card p-6">
+                    <div className="text-center mb-4">
+                        <h3 className="text-lg font-semibold text-gray-800 mb-1">{title}</h3>
+                        <p className="text-sm text-gray-600">{subtitle}</p>
+                    </div>
+                    
+                    <div className="space-y-2 mb-4">
+                        {items.map((item, index) => {
+                            const itemText = typeof item === 'object' ? item.text : item;
+                            const isCompleted = typeof item === 'object' ? item.completed : false;
+                            
+                            return (
+                                <div key={index} className={`flex items-center justify-between p-3 rounded-lg border ${colorClasses[color]}`}>
+                                    {editingIndex === index ? (
+                                        <div className="flex-1 flex gap-2">
+                                            <input
+                                                type="text"
+                                                value={editValue}
+                                                onChange={(e) => setEditValue(e.target.value)}
+                                                className="flex-1 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-green-500"
+                                                onKeyPress={(e) => e.key === 'Enter' && handleSaveEdit()}
+                                            />
+                                            <button
+                                                onClick={handleSaveEdit}
+                                                className="px-2 py-1 bg-green-500 text-white text-xs rounded hover:bg-green-600"
+                                            >
+                                                Save
+                                            </button>
+                                            <button
+                                                onClick={handleCancelEdit}
+                                                className="px-2 py-1 bg-gray-500 text-white text-xs rounded hover:bg-gray-600"
+                                            >
+                                                Cancel
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <div className="flex items-center gap-2 flex-1">
+                                                <button
+                                                    onClick={() => {
+                                                        const itemId = item.id || index;
+                                                        onToggle(listType, itemId);
+                                                    }}
+                                                    className={`w-4 h-4 rounded border-2 flex items-center justify-center ${
+                                                        isCompleted 
+                                                            ? 'bg-green-500 border-green-500 text-white' 
+                                                            : 'border-gray-300'
+                                                    }`}
+                                                >
+                                                    {isCompleted && '✓'}
+                                                </button>
+                                                <span className={`text-sm ${isCompleted ? 'line-through text-gray-500' : 'text-gray-700'}`}>
+                                                    {itemText}
+                                                </span>
+                                            </div>
+                                            <div className="flex gap-1">
+                                                <button
+                                                    onClick={() => handleEdit(index)}
+                                                    className="text-blue-500 hover:text-blue-700 text-xs"
+                                                >
+                                                    Edit
+                                                </button>
+                                                <button
+                                                    onClick={() => onRemove(listType, item.id || index)}
+                                                    className="text-red-500 hover:text-red-700 text-xs"
+                                                >
+                                                    ×
+                                                </button>
+                                            </div>
+                                        </>
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
+                    
+                    <div className="flex gap-2">
+                        <input
+                            type="text"
+                            value={newItem}
+                            onChange={(e) => setNewItem(e.target.value)}
+                            placeholder={placeholder}
+                            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                            onKeyPress={(e) => e.key === 'Enter' && handleAdd()}
+                        />
+                        <button
+                            onClick={handleAdd}
+                            className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
+                        >
+                            <PlusIcon />
+                        </button>
+                    </div>
+                </div>
+            );
+        };
+
+        // Family Dashboard Component
+        const FamilyDashboard = ({ weekData, onNavigateToList, onNavigateToGoals, onNavigateToTodos }) => {
+            const [familyVision, setFamilyVision] = useState("We are a family committed to love, growth, and intentional living. We support each other's dreams, communicate openly, and build a home filled with joy, learning, and meaningful experiences.");
+            const [isEditingVision, setIsEditingVision] = useState(false);
+            const [visionEditValue, setVisionEditValue] = useState(familyVision);
+            
+            const [goals, setGoals] = useState({
+                oneYear: [
+                    { id: 1, text: "Save $10,000 for emergency fund", completed: false },
+                    { id: 2, text: "Learn Spanish basics", completed: false },
+                    { id: 3, text: "Take family vacation", completed: false }
+                ],
+                fiveYear: [
+                    { id: 4, text: "Buy our first home", completed: false },
+                    { id: 5, text: "Start a family business", completed: false },
+                    { id: 6, text: "Kids in college", completed: false }
+                ],
+                tenYear: [
+                    { id: 7, text: "Achieve financial freedom", completed: false },
+                    { id: 8, text: "Travel the world", completed: false },
+                    { id: 9, text: "Create legacy planning", completed: false }
+                ]
+            });
+
+            const [newGoal, setNewGoal] = useState({ timeline: 'oneYear', text: '' });
+
+            // Calculate quick stats
+            const totalTodos = (weekData?.todos || []).length;
+            const totalLists = [
+                weekData?.todos || [],
+                weekData?.prayers || [],
+                weekData?.goals || [],
+                weekData?.grocery || [],
+                weekData?.unconfessedSin || [],
+                weekData?.weeklyWinddown || []
+            ].filter(list => list.length > 0).length;
+            
+            const totalGoals = goals.oneYear.length + goals.fiveYear.length + goals.tenYear.length;
+            const completedGoals = Object.values(goals).flat().filter(goal => goal.completed).length;
+            const goalCompletionRate = totalGoals > 0 ? Math.round((completedGoals / totalGoals) * 100) : 0;
+
+            const handleVisionSave = () => {
+                setFamilyVision(visionEditValue);
+                setIsEditingVision(false);
+            };
+
+            const handleVisionCancel = () => {
+                setVisionEditValue(familyVision);
+                setIsEditingVision(false);
+            };
+
+            const addGoal = () => {
+                if (newGoal.text.trim()) {
+                    const timeline = newGoal.timeline;
+                    const newGoalItem = {
+                        id: Date.now(),
+                        text: newGoal.text.trim(),
+                        completed: false
+                    };
+                    setGoals(prev => ({
+                        ...prev,
+                        [timeline]: [...prev[timeline], newGoalItem]
+                    }));
+                    setNewGoal({ timeline: 'oneYear', text: '' });
+                }
+            };
+
+            const toggleGoal = (timeline, goalId) => {
+                setGoals(prev => ({
+                    ...prev,
+                    [timeline]: prev[timeline].map(goal => 
+                        goal.id === goalId ? { ...goal, completed: !goal.completed } : goal
+                    )
+                }));
+            };
+
+            const removeGoal = (timeline, goalId) => {
+                setGoals(prev => ({
+                    ...prev,
+                    [timeline]: prev[timeline].filter(goal => goal.id !== goalId)
+                }));
+            };
+
+            return (
+                <div className="space-y-8">
+                    {/* Family Vision & Creed */}
+                    <div className="section-card rounded-xl p-8">
+                        <div className="text-center mb-6">
+                            <h2 className="section-header text-3xl font-bold mb-2">
+                                🏠 Family Vision & Creed
+                            </h2>
+                            <p className="text-gray-600">
+                                Your family's mission statement and guiding principles
+                            </p>
+                        </div>
+                        
+                        {isEditingVision ? (
+                            <div className="space-y-4">
+                                <textarea
+                                    value={visionEditValue}
+                                    onChange={(e) => setVisionEditValue(e.target.value)}
+                                    className="w-full p-4 border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent resize-none"
+                                    rows="4"
+                                    placeholder="Write your family vision statement..."
+                                />
+                                <div className="flex justify-center gap-4">
+                                    <button
+                                        onClick={handleVisionSave}
+                                        className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
+                                    >
+                                        Save Vision
+                                    </button>
+                                    <button
+                                        onClick={handleVisionCancel}
+                                        className="px-6 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
+                                    >
+                                        Cancel
+                                    </button>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="text-center">
+                                <div className="text-lg text-gray-700 italic mb-6 leading-relaxed">
+                                    "{familyVision}"
+                                </div>
+                                <button
+                                    onClick={() => setIsEditingVision(true)}
+                                    className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
+                                >
+                                    Edit Vision Statement
+                                </button>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Quick Stats and Weekly Overview */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div className="section-card rounded-xl p-6 text-center">
+                            <h3 className="text-xl font-semibold text-gray-800 mb-4">📊 Quick Stats</h3>
+                            <div className="space-y-3">
+                                <div className="text-2xl font-bold text-primary">{totalTodos}</div>
+                                <div className="text-sm text-gray-600">Outstanding To-Dos</div>
+                            </div>
+                            <div className="space-y-3 mt-4">
+                                <div className="text-2xl font-bold text-secondary">{totalLists}</div>
+                                <div className="text-sm text-gray-600">Active Lists</div>
+                            </div>
+                            <div className="space-y-3 mt-4">
+                                <div className="text-2xl font-bold text-accent">{totalGoals}</div>
+                                <div className="text-sm text-gray-600">Total Goals</div>
+                            </div>
+                        </div>
+
+                        <div className="section-card rounded-xl p-6 text-center">
+                            <h3 className="text-xl font-semibold text-gray-800 mb-4">📅 This Week</h3>
+                            <div className="space-y-2 text-sm text-gray-600">
+                                <div>• Date Night</div>
+                                <div>• Groceries</div>
+                                <div>• Appointments</div>
+                                <div>• Family Time</div>
+                            </div>
+                        </div>
+
+                        <div className="section-card rounded-xl p-6 text-center">
+                            <h3 className="text-xl font-semibold text-gray-800 mb-4">🚀 Next Week</h3>
+                            <div className="space-y-2 text-sm text-gray-600">
+                                <div>• Family Trip</div>
+                                <div>• Home Project</div>
+                                <div>• Budget Review</div>
+                                <div>• Planning Session</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Outstanding To-Dos */}
+                    <div className="section-card rounded-xl p-6">
+                        <div className="flex justify-between items-center mb-6">
+                            <div>
+                                <h2 className="section-header text-2xl font-bold mb-2">
+                                    ✅ Outstanding To-Dos
+                                </h2>
+                                <p className="text-gray-600">
+                                    Your current week's action items
+                                </p>
+                            </div>
+                            <button
+                                onClick={onNavigateToTodos}
+                                className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
+                            >
+                                View All To-Dos →
+                            </button>
+                        </div>
+                        
+                        <div className="space-y-3">
+                            {(weekData?.todos || []).slice(0, 5).map((todo, index) => {
+                                const todoText = typeof todo === 'object' ? todo.text : todo;
+                                const isCompleted = typeof todo === 'object' ? todo.completed : false;
+                                
+                                return (
+                                    <div key={index} className="flex items-center justify-between p-3 bg-white rounded-lg border border-gray-200">
+                                        <div className="flex items-center gap-3">
+                                            <div className={`w-4 h-4 rounded border-2 flex items-center justify-center ${
+                                                isCompleted 
+                                                    ? 'bg-green-500 border-green-500 text-white' 
+                                                    : 'border-gray-300'
+                                            }`}>
+                                                {isCompleted && '✓'}
+                                            </div>
+                                            <span className={`text-sm ${isCompleted ? 'line-through text-gray-500' : 'text-gray-700'}`}>
+                                                {todoText}
+                                            </span>
+                                        </div>
+                                        <div className="flex gap-2">
+                                            <button className="text-blue-500 hover:text-blue-700 text-xs">Edit</button>
+                                            <button className="text-red-500 hover:text-red-700 text-xs">×</button>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                            
+                            {(!weekData?.todos || weekData.todos.length === 0) && (
+                                <div className="text-center py-8 text-gray-500">
+                                    No to-dos yet. Add some tasks to get started!
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Shared Lists */}
+                    <div className="section-card rounded-xl p-6">
+                        <div className="flex justify-between items-center mb-6">
+                            <div>
+                                <h2 className="section-header text-2xl font-bold mb-2">
+                                    📋 Shared Lists
+                                </h2>
+                                <p className="text-gray-600">
+                                    Your collaborative lists and collections
+                                </p>
+                            </div>
+                            <button
+                                onClick={onNavigateToList}
+                                className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
+                            >
+                                View All Lists →
+                            </button>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {/* To-Do List */}
+                            <div className="bg-white p-4 rounded-lg border border-gray-200">
+                                <div className="flex items-center gap-2 mb-3">
+                                    <span className="text-2xl">✅</span>
+                                    <h3 className="font-semibold text-gray-800">To-Do List</h3>
+                                </div>
+                                <div className="space-y-2 mb-3">
+                                    {(weekData?.todos || []).slice(0, 3).map((todo, index) => {
+                                        const todoText = typeof todo === 'object' ? todo.text : todo;
+                                        return (
+                                            <div key={index} className="text-sm text-gray-600 truncate">
+                                                • {todoText}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                                <button
+                                    onClick={onNavigateToList}
+                                    className="w-full px-3 py-2 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors text-sm"
+                                >
+                                    View/Edit →
+                                </button>
+                            </div>
+
+                            {/* Prayer List */}
+                            <div className="bg-white p-4 rounded-lg border border-gray-200">
+                                <div className="flex items-center gap-2 mb-3">
+                                    <span className="text-2xl">🙏</span>
+                                    <h3 className="font-semibold text-gray-800">Prayer List</h3>
+                                </div>
+                                <div className="space-y-2 mb-3">
+                                    {(weekData?.prayers || []).slice(0, 3).map((prayer, index) => {
+                                        const prayerText = typeof prayer === 'object' ? prayer.text : prayer;
+                                        return (
+                                            <div key={index} className="text-sm text-gray-600 truncate">
+                                                • {prayerText}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                                <button
+                                    onClick={onNavigateToList}
+                                    className="w-full px-3 py-2 bg-purple-100 text-purple-700 rounded hover:bg-purple-200 transition-colors text-sm"
+                                >
+                                    View/Edit →
+                                </button>
+                            </div>
+
+                            {/* Goals */}
+                            <div className="bg-white p-4 rounded-lg border border-gray-200">
+                                <div className="flex items-center gap-2 mb-3">
+                                    <span className="text-2xl">🎯</span>
+                                    <h3 className="font-semibold text-gray-800">Goals</h3>
+                                </div>
+                                <div className="space-y-2 mb-3">
+                                    {(weekData?.goals || []).slice(0, 3).map((goal, index) => {
+                                        const goalText = typeof goal === 'object' ? goal.text : goal;
+                                        return (
+                                            <div key={index} className="text-sm text-gray-600 truncate">
+                                                • {goalText}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                                <button
+                                    onClick={onNavigateToList}
+                                    className="w-full px-3 py-2 bg-green-100 text-green-700 rounded hover:bg-green-200 transition-colors text-sm"
+                                >
+                                    View/Edit →
+                                </button>
+                            </div>
+
+                            {/* Grocery List */}
+                            <div className="bg-white p-4 rounded-lg border border-gray-200">
+                                <div className="flex items-center gap-2 mb-3">
+                                    <span className="text-2xl">🛒</span>
+                                    <h3 className="font-semibold text-gray-800">Grocery List</h3>
+                                </div>
+                                <div className="space-y-2 mb-3">
+                                    {(weekData?.grocery || []).slice(0, 3).map((item, index) => {
+                                        const itemText = typeof item === 'object' ? item.text : item;
+                                        return (
+                                            <div key={index} className="text-sm text-gray-600 truncate">
+                                                • {itemText}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                                <button
+                                    onClick={onNavigateToList}
+                                    className="w-full px-3 py-2 bg-orange-100 text-orange-700 rounded hover:bg-orange-200 transition-colors text-sm"
+                                >
+                                    View/Edit →
+                                </button>
+                            </div>
+
+                            {/* Unconfessed Sin */}
+                            <div className="bg-white p-4 rounded-lg border border-gray-200">
+                                <div className="flex items-center gap-2 mb-3">
+                                    <span className="text-2xl">💭</span>
+                                    <h3 className="font-semibold text-gray-800">Unconfessed Sin</h3>
+                                </div>
+                                <div className="space-y-2 mb-3">
+                                    {(weekData?.unconfessedSin || []).slice(0, 3).map((sin, index) => {
+                                        const sinText = typeof sin === 'object' ? sin.text : sin;
+                                        return (
+                                            <div key={index} className="text-sm text-gray-600 truncate">
+                                                • {sinText}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                                <button
+                                    onClick={onNavigateToList}
+                                    className="w-full px-3 py-2 bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors text-sm"
+                                >
+                                    View/Edit →
+                                </button>
+                            </div>
+
+                            {/* Weekly Winddown */}
+                            <div className="bg-white p-4 rounded-lg border border-gray-200">
+                                <div className="flex items-center gap-2 mb-3">
+                                    <span className="text-2xl">🌙</span>
+                                    <h3 className="font-semibold text-gray-800">Weekly Winddown</h3>
+                                </div>
+                                <div className="space-y-2 mb-3">
+                                    {(weekData?.weeklyWinddown || []).slice(0, 3).map((activity, index) => {
+                                        const activityText = typeof activity === 'object' ? activity.text : activity;
+                                        return (
+                                            <div key={index} className="text-sm text-gray-600 truncate">
+                                                • {activityText}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                                <button
+                                    onClick={onNavigateToList}
+                                    className="w-full px-3 py-2 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors text-sm"
+                                >
+                                    View/Edit →
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Goal Timelines */}
+                    <div className="section-card rounded-xl p-6">
+                        <div className="flex justify-between items-center mb-6">
+                            <div>
+                                <h2 className="section-header text-2xl font-bold mb-2">
+                                    🎯 Goal Timelines
+                                </h2>
+                                <p className="text-gray-600">
+                                    Your family's short and long-term aspirations
+                                </p>
+                            </div>
+                            <button
+                                onClick={onNavigateToGoals}
+                                className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
+                            >
+                                View All Goals →
+                            </button>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                            {/* 1 Year Goals */}
+                            <div className="bg-white p-4 rounded-lg border border-gray-200">
+                                <h3 className="font-semibold text-gray-800 mb-3 text-center">1 Year</h3>
+                                <div className="space-y-2 mb-3">
+                                    {goals.oneYear.map((goal) => (
+                                        <div key={goal.id} className="flex items-center gap-2">
+                                            <button
+                                                onClick={() => toggleGoal('oneYear', goal.id)}
+                                                className={`w-4 h-4 rounded border-2 flex items-center justify-center ${
+                                                    goal.completed 
+                                                        ? 'bg-green-500 border-green-500 text-white' 
+                                                        : 'border-gray-300'
+                                                }`}
+                                            >
+                                                {goal.completed && '✓'}
+                                            </button>
+                                            <span className={`text-sm ${goal.completed ? 'line-through text-gray-500' : 'text-gray-700'}`}>
+                                                {goal.text}
+                                            </span>
+                                            <button
+                                                onClick={() => removeGoal('oneYear', goal.id)}
+                                                className="text-red-500 hover:text-red-700 text-xs ml-auto"
+                                            >
+                                                ×
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* 5 Year Goals */}
+                            <div className="bg-white p-4 rounded-lg border border-gray-200">
+                                <h3 className="font-semibold text-gray-800 mb-3 text-center">5 Years</h3>
+                                <div className="space-y-2 mb-3">
+                                    {goals.fiveYear.map((goal) => (
+                                        <div key={goal.id} className="flex items-center gap-2">
+                                            <button
+                                                onClick={() => toggleGoal('fiveYear', goal.id)}
+                                                className={`w-4 h-4 rounded border-2 flex items-center justify-center ${
+                                                    goal.completed 
+                                                        ? 'bg-green-500 border-green-500 text-white' 
+                                                        : 'border-gray-300'
+                                                }`}
+                                            >
+                                                {goal.completed && '✓'}
+                                            </button>
+                                            <span className={`text-sm ${goal.completed ? 'line-through text-gray-500' : 'text-gray-700'}`}>
+                                                {goal.text}
+                                            </span>
+                                            <button
+                                                onClick={() => removeGoal('fiveYear', goal.id)}
+                                                className="text-red-500 hover:text-red-700 text-xs ml-auto"
+                                            >
+                                                ×
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* 10 Year Goals */}
+                            <div className="bg-white p-4 rounded-lg border border-gray-200">
+                                <h3 className="font-semibold text-gray-800 mb-3 text-center">10 Years</h3>
+                                <div className="space-y-2 mb-3">
+                                    {goals.tenYear.map((goal) => (
+                                        <div key={goal.id} className="flex items-center gap-2">
+                                            <button
+                                                onClick={() => toggleGoal('tenYear', goal.id)}
+                                                className={`w-4 h-4 rounded border-2 flex items-center justify-center ${
+                                                    goal.completed 
+                                                        ? 'bg-green-500 border-green-500 text-white' 
+                                                        : 'border-gray-300'
+                                                }`}
+                                            >
+                                                {goal.completed && '✓'}
+                                            </button>
+                                            <span className={`text-sm ${goal.completed ? 'line-through text-gray-500' : 'text-gray-700'}`}>
+                                                {goal.text}
+                                            </span>
+                                            <button
+                                                onClick={() => removeGoal('tenYear', goal.id)}
+                                                className="text-red-500 hover:text-red-700 text-xs ml-auto"
+                                            >
+                                                ×
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Add New Goal */}
+                        <div className="bg-gray-50 p-4 rounded-lg">
+                            <h4 className="font-medium text-gray-800 mb-3">Add New Goal</h4>
+                            <div className="flex gap-3">
+                                <select
+                                    value={newGoal.timeline}
+                                    onChange={(e) => setNewGoal(prev => ({ ...prev, timeline: e.target.value }))}
+                                    className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                                >
+                                    <option value="oneYear">1 Year</option>
+                                    <option value="fiveYear">5 Years</option>
+                                    <option value="tenYear">10 Years</option>
+                                </select>
+                                <input
+                                    type="text"
+                                    value={newGoal.text}
+                                    onChange={(e) => setNewGoal(prev => ({ ...prev, text: e.target.value }))}
+                                    placeholder="Enter your goal..."
+                                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                                    onKeyPress={(e) => e.key === 'Enter' && addGoal()}
+                                />
+                                <button
+                                    onClick={addGoal}
+                                    className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
+                                >
+                                    Add Goal
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Progress Tracking */}
+                    <div className="section-card rounded-xl p-6">
+                        <div className="text-center mb-6">
+                            <h2 className="section-header text-2xl font-bold mb-2">
+                                📊 Progress Tracking
+                            </h2>
+                            <p className="text-gray-600">
+                                Your family's progress and achievements
+                            </p>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="bg-white p-6 rounded-lg border border-gray-200 text-center">
+                                <div className="text-3xl font-bold text-primary mb-2">{goalCompletionRate}%</div>
+                                <div className="text-gray-600">Goal Completion</div>
+                                <div className="w-full bg-gray-200 rounded-full h-2 mt-3">
+                                    <div 
+                                        className="bg-primary h-2 rounded-full transition-all duration-500"
+                                        style={{ width: `${goalCompletionRate}%` }}
+                                    ></div>
+                                </div>
+                            </div>
+                            
+                            <div className="bg-white p-6 rounded-lg border border-gray-200 text-center">
+                                <div className="text-3xl font-bold text-secondary mb-2">+12%</div>
+                                <div className="text-gray-600">Weekly Progress</div>
+                                <div className="text-sm text-gray-500 mt-2">This Month: 8/12</div>
+                                <div className="text-sm text-gray-500">Streak: 3 weeks</div>
+                            </div>
+                        </div>
+                        
+                        <div className="text-center mt-6">
+                            <button className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors">
+                                View Detailed Progress Report →
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
         // Main App Component (Based on Production Structure)
         const App = () => {
             const [currentDate, setCurrentDate] = useState(new Date());
@@ -808,8 +1522,9 @@
             const [isAdmin, setIsAdmin] = useState(false);
             const [authLoading, setAuthLoading] = useState(true);
             const [showAdmin, setShowAdmin] = useState(false); // Added showAdmin state
-        const [users, setUsers] = useState([]); // Added users state
-        const [userLoading, setUserLoading] = useState(false); // Added user loading state
+            const [users, setUsers] = useState([]); // Added users state
+            const [userLoading, setUserLoading] = useState(false); // Added user loading state
+            const [showDashboard, setShowDashboard] = useState(false); // Added dashboard toggle state
 
             // Use the new useWeekData hook - only load data when user is authenticated
             const currentWeekKey = formatWeekKey(currentDate);
@@ -1573,164 +2288,202 @@
 
                         <div className="section-divider"></div>
 
-                        {/* Week Navigation */}
-                        <div className="flex items-center justify-center gap-6">
-                            <button 
-                                onClick={() => navigateWeek(-1)}
-                                className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors shadow-sm"
-                            >
-                                <ChevronLeftIcon />
-                                Previous Week
-                            </button>
-                            
-                            <div className="text-center">
-                                <h2 className="text-xl font-semibold text-gray-800">
-                                    {formatWeekDisplay(currentDate)}
-                                </h2>
-                                <p className="text-sm text-gray-500 mt-1">
-                                    Week of {getMonday(currentDate).toLocaleDateString('en-US', { weekday: 'long' })}
-                                </p>
+                        {/* Navigation Tabs */}
+                        <div className="flex justify-center mb-8">
+                            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-1">
+                                <button
+                                    onClick={() => setShowDashboard(false)}
+                                    className={`px-6 py-3 rounded-md transition-colors ${
+                                        !showDashboard 
+                                            ? 'bg-primary text-white shadow-sm' 
+                                            : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
+                                    }`}
+                                >
+                                    📅 Weekly Schedule
+                                </button>
+                                <button
+                                    onClick={() => setShowDashboard(true)}
+                                    className={`px-6 py-3 rounded-md transition-colors ${
+                                        showDashboard 
+                                            ? 'bg-primary text-white shadow-sm' 
+                                            : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
+                                    }`}
+                                >
+                                    🏠 Family Dashboard
+                                </button>
                             </div>
-                            
-                            <button 
-                                onClick={() => navigateWeek(1)}
-                                className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors shadow-sm"
-                            >
-                                Next Week
-                                <ChevronRightIcon />
-                            </button>
-                        </div>
-                    </div>
-
-                    {/* Weekly Schedule Section */}
-                    <div className="section-card rounded-xl p-6 mb-8">
-                        <div className="text-center mb-6">
-                            <h2 className="section-header text-2xl font-bold mb-2">
-                                📅 Weekly Schedule
-                            </h2>
-                            <p className="text-gray-600">
-                                Plan your week together, day by day
-                            </p>
                         </div>
 
-                        <div className="section-divider"></div>
-
-                        <div className="flex flex-wrap justify-center gap-8 max-w-6xl mx-auto">
-                            {days.map((day) => {
-                                const dayItems = currentWeekData.schedule?.[day] || [''];
-                                return (
-                                    <div key={day} className="w-full sm:w-[calc(50%-1rem)] lg:w-[calc(33.333%-1.33rem)] xl:w-[calc(25%-1.5rem)]">
-                                        <ScheduleDay 
-                                            day={day} 
-                                            items={dayItems}
-                                            onUpdate={updateSchedule}
-                                            onAddLine={() => addScheduleLine(day)}
-                                            onRemoveLine={(index) => removeScheduleLine(day, index)}
-                                        />
+                        {/* Dashboard or Weekly Schedule */}
+                        {showDashboard ? (
+                            <FamilyDashboard 
+                                weekData={currentWeekData}
+                                onNavigateToList={() => setShowDashboard(false)}
+                                onNavigateToGoals={() => setShowDashboard(false)}
+                                onNavigateToTodos={() => setShowDashboard(false)}
+                            />
+                        ) : (
+                            <>
+                                {/* Week Navigation */}
+                                <div className="flex items-center justify-center gap-6">
+                                    <button 
+                                        onClick={() => navigateWeek(-1)}
+                                        className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors shadow-sm"
+                                    >
+                                        <ChevronLeftIcon />
+                                        Previous Week
+                                    </button>
+                                    
+                                    <div className="text-center">
+                                        <h2 className="text-xl font-semibold text-gray-800">
+                                            {formatWeekDisplay(currentDate)}
+                                        </h2>
+                                        <p className="text-sm text-gray-500 mt-1">
+                                            Week of {getMonday(currentDate).toLocaleDateString('en-US', { weekday: 'long' })}
+                                        </p>
                                     </div>
-                                );
-                            })}
-                        </div>
+                                    
+                                    <button 
+                                        onClick={() => navigateWeek(1)}
+                                        className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors shadow-sm"
+                                    >
+                                        Next Week
+                                        <ChevronRightIcon />
+                                    </button>
+                                </div>
 
-                        <div className="section-divider mt-6"></div>
-                        <div className="text-center">
-                            <p className="text-sm text-gray-500">
-                                Click in any day to add commitments, appointments, or notes
-                            </p>
-                        </div>
+                                {/* Weekly Schedule Section */}
+                                <div className="section-card rounded-xl p-6 mb-8">
+                                    <div className="text-center mb-6">
+                                        <h2 className="section-header text-2xl font-bold mb-2">
+                                            📅 Weekly Schedule
+                                        </h2>
+                                        <p className="text-gray-600">
+                                            Plan your week together, day by day
+                                        </p>
+                                    </div>
+
+                                    <div className="section-divider"></div>
+
+                                    <div className="flex flex-wrap justify-center gap-8 max-w-6xl mx-auto">
+                                        {days.map((day) => {
+                                            const dayItems = currentWeekData.schedule?.[day] || [''];
+                                            return (
+                                                <div key={day} className="w-full sm:w-[calc(50%-1rem)] lg:w-[calc(33.333%-1.33rem)] xl:w-[calc(25%-1.5rem)]">
+                                                    <ScheduleDay 
+                                                        day={day} 
+                                                        items={dayItems}
+                                                        onUpdate={updateSchedule}
+                                                        onAddLine={() => addScheduleLine(day)}
+                                                        onRemoveLine={(index) => removeScheduleLine(day, index)}
+                                                    />
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+
+                                    <div className="section-divider mt-6"></div>
+                                    <div className="text-center">
+                                        <p className="text-sm text-gray-500">
+                                            Click in any day to add commitments, appointments, or notes
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* Lists Section */}
+                                <div className="grid grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 gap-8">
+                                    <ListSection 
+                                        title="✅ To-Do List" 
+                                        subtitle="Tasks and action items"
+                                        listType="todos" 
+                                        items={currentWeekData.todos || []} 
+                                        onUpdate={updateListItem}
+                                        onAdd={addListItem}
+                                        onToggle={toggleListItem}
+                                        onRemove={removeListItem}
+                                        placeholder="Add a new task..."
+                                        color="blue"
+                                    />
+                                    
+                                    <ListSection 
+                                        title="🙏 Prayer List" 
+                                        subtitle="Prayers and requests"
+                                        listType="prayers" 
+                                        items={currentWeekData.prayers || []} 
+                                        onUpdate={updateListItem}
+                                        onAdd={addListItem}
+                                        onToggle={toggleListItem}
+                                        onRemove={removeListItem}
+                                        placeholder="Add a prayer request..."
+                                        color="purple"
+                                    />
+                                    
+                                    <ListSection 
+                                        title="🎯 Goals" 
+                                        subtitle="Dreams and aspirations"
+                                        listType="goals" 
+                                        items={currentWeekData.goals || []} 
+                                        onUpdate={updateListItem}
+                                        onAdd={addListItem}
+                                        onToggle={toggleListItem}
+                                        onRemove={removeListItem}
+                                        placeholder="Add a new goal..."
+                                        color="green"
+                                    />
+                                    
+                                    <ListSection 
+                                        title="🛒 Grocery List" 
+                                        subtitle="Shopping and supplies"
+                                        listType="grocery" 
+                                        items={currentWeekData.grocery || []} 
+                                        onUpdate={updateListItem}
+                                        onAdd={addListItem}
+                                        onToggle={toggleListItem}
+                                        onRemove={removeListItem}
+                                        placeholder="Add grocery item..."
+                                        color="orange"
+                                    />
+                                    
+                                    <ListSection 
+                                        title="💭 Unconfessed Sin" 
+                                        subtitle="Accountability and grace"
+                                        listType="unconfessedSin" 
+                                        items={currentWeekData.unconfessedSin || []} 
+                                        onUpdate={updateListItem}
+                                        onAdd={addListItem}
+                                        onToggle={toggleListItem}
+                                        onRemove={removeListItem}
+                                        placeholder="Add for accountability..."
+                                        color="red"
+                                    />
+                                    
+                                    <ListSection 
+                                        title="🌙 Weekly Winddown" 
+                                        subtitle="Weekly relaxation plan together"
+                                        listType="weeklyWinddown" 
+                                        items={currentWeekData.weeklyWinddown || []} 
+                                        onUpdate={updateListItem}
+                                        onAdd={addListItem}
+                                        onToggle={toggleListItem}
+                                        onRemove={removeListItem}
+                                        placeholder="Add relaxation activity..."
+                                        color="blue"
+                                    />
+                                </div>
+
+                                {/* Footer */}
+                                <div className="mt-12 text-center">
+                                    <div className="section-divider"></div>
+                                    <p className="text-gray-500 text-sm">
+                                        Built with ❤️ for strengthening marriages through intentional planning
+                                    </p>
+                                    <p className="text-gray-400 text-xs mt-2">
+                                        All changes sync in real-time
+                                    </p>
+                                </div>
+                            </>
+                        )}
                     </div>
-
-                    {/* Lists Section */}
-                    <div className="grid grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 gap-8">
-                        <ListSection 
-                            title="✅ To-Do List" 
-                            subtitle="Tasks and action items"
-                            listType="todos" 
-                            items={currentWeekData.todos || []} 
-                            onUpdate={updateListItem}
-                            onAdd={addListItem}
-                            onToggle={toggleListItem}
-                            onRemove={removeListItem}
-                            placeholder="Add a new task..."
-                            color="blue"
-                        />
-                        
-                        <ListSection 
-                            title="🙏 Prayer List" 
-                            subtitle="Prayers and requests"
-                            listType="prayers" 
-                            items={currentWeekData.prayers || []} 
-                            onUpdate={updateListItem}
-                            onAdd={addListItem}
-                            onToggle={toggleListItem}
-                            onRemove={removeListItem}
-                            placeholder="Add a prayer request..."
-                            color="purple"
-                        />
-                        
-                        <ListSection 
-                            title="🎯 Goals" 
-                            subtitle="Dreams and aspirations"
-                            listType="goals" 
-                            items={currentWeekData.goals || []} 
-                            onUpdate={updateListItem}
-                            onAdd={addListItem}
-                            onToggle={toggleListItem}
-                            onRemove={removeListItem}
-                            placeholder="Add a new goal..."
-                            color="green"
-                        />
-                        
-                        <ListSection 
-                            title="🛒 Grocery List" 
-                            subtitle="Shopping and supplies"
-                            listType="grocery" 
-                            items={currentWeekData.grocery || []} 
-                            onUpdate={updateListItem}
-                            onAdd={addListItem}
-                            onToggle={toggleListItem}
-                            onRemove={removeListItem}
-                            placeholder="Add grocery item..."
-                            color="orange"
-                        />
-                        
-                        <ListSection 
-                            title="💭 Unconfessed Sin" 
-                            subtitle="Accountability and grace"
-                            listType="unconfessedSin" 
-                            items={currentWeekData.unconfessedSin || []} 
-                            onUpdate={updateListItem}
-                            onAdd={addListItem}
-                            onToggle={toggleListItem}
-                            onRemove={removeListItem}
-                            placeholder="Add for accountability..."
-                            color="red"
-                        />
-                        
-                        <ListSection 
-                            title="🌙 Weekly Winddown" 
-                            subtitle="Weekly relaxation plan together"
-                            listType="weeklyWinddown" 
-                            items={currentWeekData.weeklyWinddown || []} 
-                            onUpdate={updateListItem}
-                            onAdd={addListItem}
-                            onToggle={toggleListItem}
-                            onRemove={removeListItem}
-                            placeholder="Add relaxation activity..."
-                            color="blue"
-                        />
-                    </div>
-
-                    {/* Footer */}
-                    <div className="mt-12 text-center">
-                        <div className="section-divider"></div>
-                        <p className="text-gray-500 text-sm">
-                            Built with ❤️ for strengthening marriages through intentional planning
-                        </p>
-                        <p className="text-gray-400 text-xs mt-2">
-                            All changes sync in real-time
-                        </p>
-                                            </div>
                 </div>
             );
         };
@@ -1817,143 +2570,6 @@
                         >
                             <PlusIcon />
                             Add another line
-                        </button>
-                    </div>
-                </div>
-            );
-        };
-
-        // List Section Component
-        const ListSection = ({ title, subtitle, listType, items, onUpdate, onAdd, onToggle, onRemove, placeholder, color }) => {
-            const [newItem, setNewItem] = useState('');
-            const [editingIndex, setEditingIndex] = useState(null);
-            const [editValue, setEditValue] = useState('');
-
-            const colorClasses = {
-                blue: 'border-blue-200 bg-blue-50',
-                purple: 'border-purple-200 bg-purple-50',
-                green: 'border-green-200 bg-green-50',
-                orange: 'border-orange-200 bg-orange-50',
-                red: 'border-red-200 bg-red-50'
-            };
-
-            const handleAdd = () => {
-                if (newItem.trim()) {
-                    onAdd(listType, newItem.trim());
-                    setNewItem('');
-                }
-            };
-
-            const handleEdit = (index) => {
-                setEditingIndex(index);
-                setEditValue(items[index]?.text || items[index] || '');
-            };
-
-            const handleSaveEdit = () => {
-                if (editValue.trim()) {
-                    const itemId = items[editingIndex]?.id || editingIndex;
-                    onUpdate(listType, itemId, editValue.trim());
-                    setEditingIndex(null);
-                    setEditValue('');
-                }
-            };
-
-            const handleCancelEdit = () => {
-                setEditingIndex(null);
-                setEditValue('');
-            };
-
-            return (
-                <div className="modern-card p-6">
-                    <div className="text-center mb-4">
-                        <h3 className="text-lg font-semibold text-gray-800 mb-1">{title}</h3>
-                        <p className="text-sm text-gray-600">{subtitle}</p>
-                    </div>
-                    
-                    <div className="space-y-2 mb-4">
-                        {items.map((item, index) => {
-                            const itemText = typeof item === 'object' ? item.text : item;
-                            const isCompleted = typeof item === 'object' ? item.completed : false;
-                            
-                            return (
-                                <div key={index} className={`flex items-center justify-between p-3 rounded-lg border ${colorClasses[color]}`}>
-                                    {editingIndex === index ? (
-                                        <div className="flex-1 flex gap-2">
-                                            <input
-                                                type="text"
-                                                value={editValue}
-                                                onChange={(e) => setEditValue(e.target.value)}
-                                                className="flex-1 px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-green-500"
-                                                onKeyPress={(e) => e.key === 'Enter' && handleSaveEdit()}
-                                            />
-                                            <button
-                                                onClick={handleSaveEdit}
-                                                className="px-2 py-1 bg-green-500 text-white text-xs rounded hover:bg-green-600"
-                                            >
-                                                Save
-                                            </button>
-                                            <button
-                                                onClick={handleCancelEdit}
-                                                className="px-2 py-1 bg-gray-500 text-white text-xs rounded hover:bg-gray-600"
-                                            >
-                                                Cancel
-                                            </button>
-                                        </div>
-                                    ) : (
-                                        <>
-                                            <div className="flex items-center gap-2 flex-1">
-                                                <button
-                                                    onClick={() => {
-                                                        const itemId = item.id || index;
-                                                        onToggle(listType, itemId);
-                                                    }}
-                                                    className={`w-4 h-4 rounded border-2 flex items-center justify-center ${
-                                                        isCompleted 
-                                                            ? 'bg-green-500 border-green-500 text-white' 
-                                                            : 'border-gray-300'
-                                                    }`}
-                                                >
-                                                    {isCompleted && '✓'}
-                                                </button>
-                                                <span className={`text-sm ${isCompleted ? 'line-through text-gray-500' : 'text-gray-700'}`}>
-                                                    {itemText}
-                                                </span>
-                                            </div>
-                                            <div className="flex gap-1">
-                                                <button
-                                                    onClick={() => handleEdit(index)}
-                                                    className="text-blue-500 hover:text-blue-700 text-xs"
-                                                >
-                                                    Edit
-                                                </button>
-                                                <button
-                                                    onClick={() => onRemove(listType, item.id || index)}
-                                                    className="text-red-500 hover:text-red-700 text-xs"
-                                                >
-                                                    ×
-                                                </button>
-                                            </div>
-                                        </>
-                                    )}
-                                </div>
-                            );
-                        })}
-                    </div>
-                    
-                    <div className="flex gap-2">
-                        <input
-                            type="text"
-                            value={newItem}
-                            onChange={(e) => setNewItem(e.target.value)}
-                            placeholder={placeholder}
-                            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-                            onKeyPress={(e) => e.key === 'Enter' && handleAdd()}
-                        />
-                        <button
-                            onClick={handleAdd}
-                            className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
-                        >
-                            <PlusIcon />
                         </button>
                     </div>
                 </div>

@@ -1024,10 +1024,11 @@
         };
 
         // Family Dashboard Component
-        const FamilyDashboard = ({ weekData, timelineGoals, newGoal, setNewGoal, onNavigateToTodos, onNavigateToPrayers, onNavigateToGoals, onNavigateToGrocery, onNavigateToUnconfessedSin, onNavigateToWeeklyWinddown, onAddTimelineGoal, onToggleTimelineGoal, onRemoveTimelineGoal }) => {
-            const [familyVision, setFamilyVision] = useState("We are a family committed to love, growth, and intentional living. We support each other's dreams, communicate openly, and build a home filled with joy, learning, and meaningful experiences.");
+        const FamilyDashboard = ({ weekData, setWeekData, timelineGoals, newGoal, setNewGoal, onNavigateToTodos, onNavigateToPrayers, onNavigateToGoals, onNavigateToGrocery, onNavigateToUnconfessedSin, onNavigateToWeeklyWinddown, onAddTimelineGoal, onToggleTimelineGoal, onRemoveTimelineGoal }) => {
+            // Family vision state for dashboard
+            const [familyVision, setFamilyVision] = useState("");
             const [isEditingVision, setIsEditingVision] = useState(false);
-            const [visionEditValue, setVisionEditValue] = useState(familyVision);
+            const [visionEditValue, setVisionEditValue] = useState("");
             const [showProgressReport, setShowProgressReport] = useState(false);
             
             const [goals, setGoals] = useState({
@@ -1080,11 +1081,32 @@
             const completedWeeklyItems = completedTodos + completedDashboardGoals;
             const weeklyProgress = totalWeeklyItems > 0 ? Math.round((completedWeeklyItems / totalWeeklyItems) * 100) : 0;
 
-
+            // Load family vision from database when component mounts
+            useEffect(() => {
+                if (weekData?.familyVision) {
+                    setFamilyVision(weekData.familyVision);
+                    setVisionEditValue(weekData.familyVision);
+                } else {
+                    // Set default value if none exists in database
+                    const defaultVision = "We are a family committed to love, growth, and intentional living. We support each other's dreams, communicate openly, and build a home filled with joy, learning, and meaningful experiences.";
+                    setFamilyVision(defaultVision);
+                    setVisionEditValue(defaultVision);
+                }
+            }, [weekData?.familyVision]);
 
             const handleVisionSave = () => {
-                setFamilyVision(visionEditValue);
-                setIsEditingVision(false);
+                const newVision = visionEditValue.trim();
+                if (newVision) {
+                    // Update local state
+                    setFamilyVision(newVision);
+                    setIsEditingVision(false);
+                    
+                    // Save to database using EXACT same pattern as goals/todos
+                    setWeekData(prev => ({
+                        ...prev,
+                        familyVision: newVision
+                    }));
+                }
             };
 
             const handleVisionCancel = () => {
@@ -1235,7 +1257,7 @@
                                 type="button"
                                 onClick={(e) => {
                                     e.preventDefault();
-                                    setShowDashboard(false);
+                                    setShowProgressReport(false);
                                 }}
                                 className="mt-3 px-3 py-1 bg-blue-100 text-blue-700 rounded text-xs hover:bg-blue-200 transition-colors"
                             >
@@ -2927,6 +2949,7 @@
                         {showDashboard ? (
                             <FamilyDashboard 
                                 weekData={currentWeekData}
+                                setWeekData={setWeekData}
                                 timelineGoals={timelineGoals}
                                 newGoal={newGoal}
                                 setNewGoal={setNewGoal}

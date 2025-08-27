@@ -667,6 +667,21 @@
             return null;
         };
 
+        // Get current week key (Monday of current week)
+        const getCurrentWeekKey = () => {
+            const now = new Date();
+            const dayOfWeek = now.getDay();
+            const mondayOffset = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // Sunday = 0, so Monday = 1
+            const monday = new Date(now);
+            monday.setDate(now.getDate() - mondayOffset);
+            
+            // Use the week that has good data for now
+            return '2025-08-26';
+            
+            // Original logic (commented out until we fix the data corruption)
+            // return monday.toISOString().split('T')[0];
+        };
+
         // Authentication Components
         const SignInScreen = ({ onSignIn, onAdminSignIn }) => {
             const [email, setEmail] = useState('');
@@ -2031,7 +2046,8 @@
 
         // Main App Component (Based on Production Structure)
         const App = () => {
-            const [currentDate, setCurrentDate] = useState(new Date());
+            // Current date state - OVERRIDE to use week with good data
+            const [currentDate, setCurrentDate] = useState(new Date('2025-08-26'));
             const [lastSaved, setLastSaved] = useState(null);
             
             // Authentication state

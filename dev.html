@@ -1024,10 +1024,11 @@
         };
 
         // Family Dashboard Component
-        const FamilyDashboard = ({ weekData, onNavigateToTodos, onNavigateToPrayers, onNavigateToGoals, onNavigateToGrocery, onNavigateToUnconfessedSin, onNavigateToWeeklyWinddown }) => {
+        const FamilyDashboard = ({ weekData, timelineGoals, newGoal, setNewGoal, onNavigateToTodos, onNavigateToPrayers, onNavigateToGoals, onNavigateToGrocery, onNavigateToUnconfessedSin, onNavigateToWeeklyWinddown, onAddTimelineGoal, onToggleTimelineGoal, onRemoveTimelineGoal }) => {
             const [familyVision, setFamilyVision] = useState("We are a family committed to love, growth, and intentional living. We support each other's dreams, communicate openly, and build a home filled with joy, learning, and meaningful experiences.");
             const [isEditingVision, setIsEditingVision] = useState(false);
             const [visionEditValue, setVisionEditValue] = useState(familyVision);
+            const [showProgressReport, setShowProgressReport] = useState(false);
             
             const [goals, setGoals] = useState({
                 oneYear: [
@@ -1047,10 +1048,13 @@
                 ]
             });
 
-            const [newGoal, setNewGoal] = useState({ timeline: 'oneYear', text: '' });
-
-            // Calculate quick stats
-            const totalTodos = (weekData?.todos || []).length;
+            // Calculate quick stats using real data
+            const totalTodos = (weekData?.todos || []).filter(todo => todo !== null).length;
+            const completedTodos = (weekData?.todos || []).filter(todo => 
+                todo !== null && (typeof todo === 'object' ? todo.completed : false)
+            ).length;
+            const todoCompletionRate = totalTodos > 0 ? Math.round((completedTodos / totalTodos) * 100) : 0;
+            
             const totalLists = [
                 weekData?.todos || [],
                 weekData?.prayers || [],
@@ -1058,11 +1062,25 @@
                 weekData?.grocery || [],
                 weekData?.unconfessedSin || [],
                 weekData?.weeklyWinddown || []
-            ].filter(list => list.length > 0).length;
+            ].filter(list => list.filter(item => item !== null).length > 0).length;
             
-            const totalGoals = goals.oneYear.length + goals.fiveYear.length + goals.tenYear.length;
-            const completedGoals = Object.values(goals).flat().filter(goal => goal.completed).length;
-            const goalCompletionRate = totalGoals > 0 ? Math.round((completedGoals / totalGoals) * 100) : 0;
+            // Calculate real goal completion from weekData goals (filtering out nulls)
+            const validGoals = (weekData?.goals || []).filter(goal => goal !== null);
+            const totalDashboardGoals = validGoals.length;
+            const completedDashboardGoals = validGoals.filter(goal => 
+                typeof goal === 'object' ? goal.completed : false
+            ).length;
+            const dashboardGoalCompletionRate = totalDashboardGoals > 0 ? Math.round((completedDashboardGoals / totalDashboardGoals) * 100) : 0;
+            
+            // Overall progress calculation
+            const overallProgress = Math.round((todoCompletionRate + dashboardGoalCompletionRate) / 2);
+            
+            // Calculate weekly progress based on completed items
+            const totalWeeklyItems = totalTodos + totalDashboardGoals;
+            const completedWeeklyItems = completedTodos + completedDashboardGoals;
+            const weeklyProgress = totalWeeklyItems > 0 ? Math.round((completedWeeklyItems / totalWeeklyItems) * 100) : 0;
+
+
 
             const handleVisionSave = () => {
                 setFamilyVision(visionEditValue);
@@ -1086,7 +1104,7 @@
                         ...prev,
                         [timeline]: [...prev[timeline], newGoalItem]
                     }));
-                    setNewGoal({ timeline: 'oneYear', text: '' });
+                    setNewGoal({ timeline: 'monthly', text: '' });
                 }
             };
 
@@ -1183,29 +1201,80 @@
                                 <div className="text-sm text-gray-600">Active Lists</div>
                             </div>
                             <div className="space-y-3 mt-4">
-                                <div className="text-2xl font-bold text-accent">{totalGoals}</div>
+                                <div className="text-2xl font-bold text-accent">{totalDashboardGoals}</div>
                                 <div className="text-sm text-gray-600">Total Goals</div>
                             </div>
                         </div>
 
                         <div className="section-card rounded-xl p-6 text-center">
-                            <h3 className="text-xl font-semibold text-gray-800 mb-4">📅 This Week</h3>
+                            <h3 className="text-xl font-semibold text-gray-800 mb-4">📅 This Week's Schedule</h3>
                             <div className="space-y-2 text-sm text-gray-600">
-                                <div>• Date Night</div>
-                                <div>• Groceries</div>
-                                <div>• Appointments</div>
-                                <div>• Family Time</div>
+                                {(() => {
+                                    const thisWeekSchedule = weekData?.schedule || {};
+                                    const scheduledItems = Object.values(thisWeekSchedule)
+                                        .flat()
+                                        .filter(item => item && item.trim() !== '')
+                                        .slice(0, 4);
+                                    
+                                    if (scheduledItems.length === 0) {
+                                        return (
+                                            <div className="text-gray-500 italic">
+                                                No activities scheduled yet
+                                            </div>
+                                        );
+                                    }
+                                    
+                                    return scheduledItems.map((item, index) => (
+                                        <div key={index} className="text-gray-700">
+                                            • {item}
+                                        </div>
+                                    ));
+                                })()}
                             </div>
+                            <button
+                                type="button"
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    setShowDashboard(false);
+                                }}
+                                className="mt-3 px-3 py-1 bg-blue-100 text-blue-700 rounded text-xs hover:bg-blue-200 transition-colors"
+                            >
+                                View Full Schedule →
+                            </button>
                         </div>
 
                         <div className="section-card rounded-xl p-6 text-center">
-                            <h3 className="text-xl font-semibold text-gray-800 mb-4">🚀 Next Week</h3>
+                            <h3 className="text-xl font-semibold text-gray-800 mb-4">🎯 This Week's Focus</h3>
                             <div className="space-y-2 text-sm text-gray-600">
-                                <div>• Family Trip</div>
-                                <div>• Home Project</div>
-                                <div>• Budget Review</div>
-                                <div>• Planning Session</div>
+                                {(() => {
+                                    const thisWeekGoals = timelineGoals.monthly || [];
+                                    const activeGoals = thisWeekGoals.filter(goal => !goal.completed).slice(0, 3);
+                                    
+                                    if (activeGoals.length === 0) {
+                                        return (
+                                            <div className="text-gray-500 italic">
+                                                No active monthly goals
+                                            </div>
+                                        );
+                                    }
+                                    
+                                    return activeGoals.map((goal, index) => (
+                                        <div key={index} className="text-gray-700">
+                                            • {goal.text}
+                                        </div>
+                                    ));
+                                })()}
                             </div>
+                            <button
+                                type="button"
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    onNavigateToGoals();
+                                }}
+                                className="mt-3 px-3 py-1 bg-green-100 text-green-700 rounded text-xs hover:bg-green-200 transition-colors"
+                            >
+                                View All Goals →
+                            </button>
                         </div>
                     </div>
 
@@ -1233,7 +1302,7 @@
                         </div>
                         
                         <div className="space-y-3">
-                            {(weekData?.todos || []).slice(0, 5).map((todo, index) => {
+                            {(weekData?.todos || []).filter(todo => todo !== null).slice(0, 5).map((todo, index) => {
                                 const todoText = typeof todo === 'object' ? todo.text : todo;
                                 const isCompleted = typeof todo === 'object' ? todo.completed : false;
                                 
@@ -1259,7 +1328,7 @@
                                 );
                             })}
                             
-                            {(!weekData?.todos || weekData.todos.length === 0) && (
+                            {(!weekData?.todos || weekData.todos.filter(todo => todo !== null).length === 0) && (
                                 <div className="text-center py-8 text-gray-500">
                                     No to-dos yet. Add some tasks to get started!
                                 </div>
@@ -1298,7 +1367,7 @@
                                     <h3 className="font-semibold text-gray-800">To-Do List</h3>
                                 </div>
                                 <div className="space-y-2 mb-3">
-                                    {(weekData?.todos || []).slice(0, 3).map((todo, index) => {
+                                    {(weekData?.todos || []).filter(todo => todo !== null).slice(0, 3).map((todo, index) => {
                                         const todoText = typeof todo === 'object' ? todo.text : todo;
                                         return (
                                             <div key={index} className="text-sm text-gray-600 truncate">
@@ -1326,7 +1395,7 @@
                                     <h3 className="font-semibold text-gray-800">Prayer List</h3>
                                 </div>
                                 <div className="space-y-2 mb-3">
-                                    {(weekData?.prayers || []).slice(0, 3).map((prayer, index) => {
+                                    {(weekData?.prayers || []).filter(prayer => prayer !== null).slice(0, 3).map((prayer, index) => {
                                         const prayerText = typeof prayer === 'object' ? prayer.text : prayer;
                                         return (
                                             <div key={index} className="text-sm text-gray-600 truncate">
@@ -1347,33 +1416,7 @@
                                 </button>
                             </div>
 
-                            {/* Goals */}
-                            <div className="bg-white p-4 rounded-lg border border-gray-200">
-                                <div className="flex items-center gap-2 mb-3">
-                                    <span className="text-2xl">🎯</span>
-                                    <h3 className="font-semibold text-gray-800">Goals</h3>
-                                </div>
-                                <div className="space-y-2 mb-3">
-                                    {(weekData?.goals || []).slice(0, 3).map((goal, index) => {
-                                        const goalText = typeof goal === 'object' ? goal.text : goal;
-                                        return (
-                                            <div key={index} className="text-sm text-gray-600 truncate">
-                                                • {goalText}
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                                <button
-                                    type="button"
-                                    onClick={(e) => {
-                                        e.preventDefault();
-                                        onNavigateToGoals();
-                                    }}
-                                    className="w-full px-3 py-2 bg-green-100 text-green-700 rounded hover:bg-green-200 transition-colors text-sm"
-                                >
-                                    View/Edit →
-                                </button>
-                            </div>
+
 
                             {/* Grocery List */}
                             <div className="bg-white p-4 rounded-lg border border-gray-200">
@@ -1382,7 +1425,7 @@
                                     <h3 className="font-semibold text-gray-800">Grocery List</h3>
                                 </div>
                                 <div className="space-y-2 mb-3">
-                                    {(weekData?.grocery || []).slice(0, 3).map((item, index) => {
+                                    {(weekData?.grocery || []).filter(item => item !== null).slice(0, 3).map((item, index) => {
                                         const itemText = typeof item === 'object' ? item.text : item;
                                         return (
                                             <div key={index} className="text-sm text-gray-600 truncate">
@@ -1410,7 +1453,7 @@
                                     <h3 className="font-semibold text-gray-800">Unconfessed Sin</h3>
                                 </div>
                                 <div className="space-y-2 mb-3">
-                                    {(weekData?.unconfessedSin || []).slice(0, 3).map((sin, index) => {
+                                    {(weekData?.unconfessedSin || []).filter(sin => sin !== null).slice(0, 3).map((sin, index) => {
                                         const sinText = typeof sin === 'object' ? sin.text : sin;
                                         return (
                                             <div key={index} className="text-sm text-gray-600 truncate">
@@ -1438,7 +1481,7 @@
                                     <h3 className="font-semibold text-gray-800">Weekly Winddown</h3>
                                 </div>
                                 <div className="space-y-2 mb-3">
-                                    {(weekData?.weeklyWinddown || []).slice(0, 3).map((activity, index) => {
+                                    {(weekData?.weeklyWinddown || []).filter(activity => activity !== null).slice(0, 3).map((activity, index) => {
                                         const activityText = typeof activity === 'object' ? activity.text : activity;
                                         return (
                                             <div key={index} className="text-sm text-gray-600 truncate">
@@ -1484,158 +1527,285 @@
                             </button>
                         </div>
                         
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+                            {/* Monthly Goals */}
+                            <div className="bg-white p-4 rounded-lg border border-gray-200">
+                                <h4 className="font-semibold text-gray-800 mb-3 text-center">📅 Monthly</h4>
+                                <div className="space-y-2 mb-3">
+                                    {(timelineGoals?.monthly || []).filter(goal => goal !== null).map((goal, index) => {
+                                        const goalText = typeof goal === 'object' ? goal.text : goal;
+                                        const isCompleted = typeof goal === 'object' ? goal.completed : false;
+                                        
+                                        return (
+                                            <div key={goal.id || index} className="flex items-center gap-2">
+                                                <button
+                                                    type="button"
+                                                    onClick={(e) => {
+                                                        e.preventDefault();
+                                                        toggleTimelineGoal('monthly', goal.id || index);
+                                                    }}
+                                                    className={`w-4 h-4 rounded border-2 flex items-center justify-center ${
+                                                        isCompleted 
+                                                            ? 'bg-green-500 border-green-500 text-white' 
+                                                            : 'border-gray-300'
+                                                    }`}
+                                                >
+                                                    {isCompleted && '✓'}
+                                                </button>
+                                                <span className={`text-sm flex-1 ${isCompleted ? 'line-through text-gray-500' : 'text-gray-700'}`}>
+                                                    {goalText}
+                                                </span>
+                                                <button
+                                                    type="button"
+                                                    onClick={(e) => {
+                                                        e.preventDefault();
+                                                        removeTimelineGoal('monthly', goal.id || index);
+                                                    }}
+                                                    className="text-red-500 hover:text-red-700 text-xs ml-auto"
+                                                >
+                                                    ×
+                                                </button>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                                <div className="space-y-2">
+                                    <input
+                                        type="text"
+                                        placeholder="New monthly goal..."
+                                        className="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        onKeyPress={(e) => {
+                                            if (e.key === 'Enter' && e.target.value.trim()) {
+                                                addTimelineGoal('monthly', e.target.value.trim());
+                                                e.target.value = '';
+                                            }
+                                        }}
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            const input = e.target.previousElementSibling;
+                                            if (input.value.trim()) {
+                                                addTimelineGoal('monthly', input.value.trim());
+                                                input.value = '';
+                                            }
+                                        }}
+                                        className="w-full px-3 py-2 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors text-sm"
+                                    >
+                                        + Add Goal
+                                    </button>
+                                </div>
+                            </div>
+
                             {/* 1 Year Goals */}
                             <div className="bg-white p-4 rounded-lg border border-gray-200">
-                                <h3 className="font-semibold text-gray-800 mb-3 text-center">1 Year</h3>
+                                <h4 className="font-semibold text-gray-800 mb-3 text-center">1 Year</h4>
                                 <div className="space-y-2 mb-3">
-                                    {goals.oneYear.map((goal) => (
-                                        <div key={goal.id} className="flex items-center gap-2">
-                                            <button
-                                                type="button"
-                                                onClick={(e) => {
-                                                    e.preventDefault();
-                                                    toggleGoal('oneYear', goal.id);
-                                                }}
-                                                className={`w-4 h-4 rounded border-2 flex items-center justify-center ${
-                                                    goal.completed 
-                                                        ? 'bg-green-500 border-green-500 text-white' 
-                                                        : 'border-gray-300'
-                                                }`}
-                                            >
-                                                {goal.completed && '✓'}
-                                            </button>
-                                            <span className={`text-sm ${goal.completed ? 'line-through text-gray-500' : 'text-gray-700'}`}>
-                                                {goal.text}
-                                            </span>
-                                            <button
-                                                type="button"
-                                                onClick={(e) => {
-                                                    e.preventDefault();
-                                                    removeGoal('oneYear', goal.id);
-                                                }}
-                                                className="text-red-500 hover:text-red-700 text-xs ml-auto"
-                                            >
-                                                ×
-                                            </button>
-                                        </div>
-                                    ))}
+                                    {(timelineGoals?.oneYear || []).filter(goal => goal !== null).map((goal, index) => {
+                                        const goalText = typeof goal === 'object' ? goal.text : goal;
+                                        const isCompleted = typeof goal === 'object' ? goal.completed : false;
+                                        
+                                        return (
+                                            <div key={goal.id || index} className="flex items-center gap-2">
+                                                <button
+                                                    type="button"
+                                                    onClick={(e) => {
+                                                        e.preventDefault();
+                                                        toggleTimelineGoal('oneYear', goal.id || index);
+                                                    }}
+                                                    className={`w-4 h-4 rounded border-2 flex items-center justify-center ${
+                                                        isCompleted 
+                                                            ? 'bg-green-500 border-green-500 text-white' 
+                                                            : 'border-gray-300'
+                                                    }`}
+                                                >
+                                                    {isCompleted && '✓'}
+                                                </button>
+                                                <span className={`text-sm flex-1 ${isCompleted ? 'line-through text-gray-500' : 'text-gray-700'}`}>
+                                                    {goalText}
+                                                </span>
+                                                <button
+                                                    type="button"
+                                                    onClick={(e) => {
+                                                        e.preventDefault();
+                                                        removeTimelineGoal('oneYear', goal.id || index);
+                                                    }}
+                                                    className="text-red-500 hover:text-red-700 text-xs ml-auto"
+                                                >
+                                                    ×
+                                                </button>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                                <div className="space-y-2">
+                                    <input
+                                        type="text"
+                                        placeholder="New 1 year goal..."
+                                        className="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        onKeyPress={(e) => {
+                                            if (e.key === 'Enter' && e.target.value.trim()) {
+                                                addTimelineGoal('oneYear', e.target.value.trim());
+                                                e.target.value = '';
+                                            }
+                                        }}
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            const input = e.target.previousElementSibling;
+                                            if (input.value.trim()) {
+                                                addTimelineGoal('oneYear', input.value.trim());
+                                                input.value = '';
+                                            }
+                                        }}
+                                        className="w-full px-3 py-2 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors text-sm"
+                                    >
+                                        + Add Goal
+                                    </button>
                                 </div>
                             </div>
 
                             {/* 5 Year Goals */}
                             <div className="bg-white p-4 rounded-lg border border-gray-200">
-                                <h3 className="font-semibold text-gray-800 mb-3 text-center">5 Years</h3>
+                                <h4 className="font-semibold text-gray-800 mb-3 text-center">5 Years</h4>
                                 <div className="space-y-2 mb-3">
-                                    {goals.fiveYear.map((goal) => (
-                                        <div key={goal.id} className="flex items-center gap-2">
-                                            <button
-                                                type="button"
-                                                onClick={(e) => {
-                                                    e.preventDefault();
-                                                    toggleGoal('fiveYear', goal.id);
-                                                }}
-                                                className={`w-4 h-4 rounded border-2 flex items-center justify-center ${
-                                                    goal.completed 
-                                                        ? 'bg-green-500 border-green-500 text-white' 
-                                                        : 'border-gray-300'
-                                                }`}
-                                            >
-                                                {goal.completed && '✓'}
-                                            </button>
-                                            <span className={`text-sm ${goal.completed ? 'line-through text-gray-500' : 'text-gray-700'}`}>
-                                                {goal.text}
-                                            </span>
-                                            <button
-                                                type="button"
-                                                onClick={(e) => {
-                                                    e.preventDefault();
-                                                    removeGoal('fiveYear', goal.id);
-                                                }}
-                                                className="text-red-500 hover:text-red-700 text-xs ml-auto"
-                                            >
-                                                ×
-                                            </button>
-                                        </div>
-                                    ))}
+                                    {(timelineGoals?.fiveYear || []).filter(goal => goal !== null).map((goal, index) => {
+                                        const goalText = typeof goal === 'object' ? goal.text : goal;
+                                        const isCompleted = typeof goal === 'object' ? goal.completed : false;
+                                        
+                                        return (
+                                            <div key={goal.id || index} className="flex items-center gap-2">
+                                                <button
+                                                    type="button"
+                                                    onClick={(e) => {
+                                                        e.preventDefault();
+                                                        toggleTimelineGoal('fiveYear', goal.id || index);
+                                                    }}
+                                                    className={`w-4 h-4 rounded border-2 flex items-center justify-center ${
+                                                        isCompleted 
+                                                            ? 'bg-green-500 border-green-500 text-white' 
+                                                            : 'border-gray-300'
+                                                    }`}
+                                                >
+                                                    {isCompleted && '✓'}
+                                                </button>
+                                                <span className={`text-sm flex-1 ${isCompleted ? 'line-through text-gray-500' : 'text-gray-700'}`}>
+                                                    {goalText}
+                                                </span>
+                                                <button
+                                                    type="button"
+                                                    onClick={(e) => {
+                                                        e.preventDefault();
+                                                        removeTimelineGoal('fiveYear', goal.id || index);
+                                                    }}
+                                                    className="text-red-500 hover:text-red-700 text-xs ml-auto"
+                                                >
+                                                    ×
+                                                </button>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                                <div className="space-y-2">
+                                    <input
+                                        type="text"
+                                        placeholder="New 5 year goal..."
+                                        className="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        onKeyPress={(e) => {
+                                            if (e.key === 'Enter' && e.target.value.trim()) {
+                                                addTimelineGoal('fiveYear', e.target.value.trim());
+                                                e.target.value = '';
+                                            }
+                                        }}
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            const input = e.target.previousElementSibling;
+                                            if (input.value.trim()) {
+                                                addTimelineGoal('fiveYear', input.value.trim());
+                                                input.value = '';
+                                            }
+                                        }}
+                                        className="w-full px-3 py-2 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors text-sm"
+                                    >
+                                        + Add Goal
+                                    </button>
                                 </div>
                             </div>
 
                             {/* 10 Year Goals */}
                             <div className="bg-white p-4 rounded-lg border border-gray-200">
-                                <h3 className="font-semibold text-gray-800 mb-3 text-center">10 Years</h3>
+                                <h4 className="font-semibold text-gray-800 mb-3 text-center">10 Years</h4>
                                 <div className="space-y-2 mb-3">
-                                    {goals.tenYear.map((goal) => (
-                                        <div key={goal.id} className="flex items-center gap-2">
-                                            <button
-                                                type="button"
-                                                onClick={(e) => {
-                                                    e.preventDefault();
-                                                    toggleGoal('tenYear', goal.id);
-                                                }}
-                                                className={`w-4 h-4 rounded border-2 flex items-center justify-center ${
-                                                    goal.completed 
-                                                        ? 'bg-green-500 border-green-500 text-white' 
-                                                        : 'border-gray-300'
-                                                }`}
-                                            >
-                                                {goal.completed && '✓'}
-                                            </button>
-                                            <span className={`text-sm ${goal.completed ? 'line-through text-gray-500' : 'text-gray-700'}`}>
-                                                {goal.text}
-                                            </span>
-                                            <button
-                                                type="button"
-                                                onClick={(e) => {
-                                                    e.preventDefault();
-                                                    removeGoal('tenYear', goal.id);
-                                                }}
-                                                className="text-red-500 hover:text-red-700 text-xs ml-auto"
-                                            >
-                                                ×
-                                            </button>
-                                        </div>
-                                    ))}
+                                    {(timelineGoals?.tenYear || []).filter(goal => goal !== null).map((goal, index) => {
+                                        const goalText = typeof goal === 'object' ? goal.text : goal;
+                                        const isCompleted = typeof goal === 'object' ? goal.completed : false;
+                                        
+                                        return (
+                                            <div key={goal.id || index} className="flex items-center gap-2">
+                                                <button
+                                                    type="button"
+                                                    onClick={(e) => {
+                                                        e.preventDefault();
+                                                        toggleTimelineGoal('tenYear', goal.id || index);
+                                                    }}
+                                                    className={`w-4 h-4 rounded border-2 flex items-center justify-center ${
+                                                        isCompleted 
+                                                            ? 'bg-green-500 border-green-500 text-white' 
+                                                            : 'border-gray-300'
+                                                    }`}
+                                                >
+                                                    {isCompleted && '✓'}
+                                                </button>
+                                                <span className={`text-sm flex-1 ${isCompleted ? 'line-through text-gray-500' : 'text-gray-700'}`}>
+                                                    {goalText}
+                                                </span>
+                                                <button
+                                                    type="button"
+                                                    onClick={(e) => {
+                                                        e.preventDefault();
+                                                        removeTimelineGoal('tenYear', goal.id || index);
+                                                    }}
+                                                    className="text-red-500 hover:text-red-700 text-xs ml-auto"
+                                                >
+                                                    ×
+                                                </button>
+                                            </div>
+                                        );
+                                    })}
                                 </div>
-                            </div>
-                        </div>
-
-                        {/* Add New Goal */}
-                        <div className="bg-gray-50 p-4 rounded-lg">
-                            <h4 className="font-medium text-gray-800 mb-3">Add New Goal</h4>
-                            <div className="flex gap-3">
-                                <select
-                                    value={newGoal.timeline}
-                                    onChange={(e) => setNewGoal(prev => ({ ...prev, timeline: e.target.value }))}
-                                    className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                                >
-                                    <option value="oneYear">1 Year</option>
-                                    <option value="fiveYear">5 Years</option>
-                                    <option value="tenYear">10 Years</option>
-                                </select>
-                                <input
-                                    type="text"
-                                    value={newGoal.text}
-                                    onChange={(e) => setNewGoal(prev => ({ ...prev, text: e.target.value }))}
-                                    placeholder="Enter your goal..."
-                                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                                    onKeyPress={(e) => {
-                                        if (e.key === 'Enter') {
+                                <div className="space-y-2">
+                                    <input
+                                        type="text"
+                                        placeholder="New 10 year goal..."
+                                        className="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        onKeyPress={(e) => {
+                                            if (e.key === 'Enter' && e.target.value.trim()) {
+                                                addTimelineGoal('tenYear', e.target.value.trim());
+                                                e.target.value = '';
+                                            }
+                                        }}
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={(e) => {
                                             e.preventDefault();
-                                            addGoal();
-                                        }
-                                    }}
-                                />
-                                <button
-                                    type="button"
-                                    onClick={(e) => {
-                                        e.preventDefault();
-                                        addGoal();
-                                    }}
-                                    className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
-                                >
-                                    Add Goal
-                                </button>
+                                            const input = e.target.previousElementSibling;
+                                            if (input.value.trim()) {
+                                                addTimelineGoal('tenYear', input.value.trim());
+                                                input.value = '';
+                                            }
+                                        }}
+                                        className="w-full px-3 py-2 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors text-sm"
+                                    >
+                                        + Add Goal
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -1653,21 +1823,21 @@
                         
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="bg-white p-6 rounded-lg border border-gray-200 text-center">
-                                <div className="text-3xl font-bold text-primary mb-2">{goalCompletionRate}%</div>
-                                <div className="text-gray-600">Goal Completion</div>
+                                <div className="text-3xl font-bold text-primary mb-2">{overallProgress}%</div>
+                                <div className="text-gray-600">Overall Progress</div>
                                 <div className="w-full bg-gray-200 rounded-full h-2 mt-3">
                                     <div 
                                         className="bg-primary h-2 rounded-full transition-all duration-500"
-                                        style={{ width: `${goalCompletionRate}%` }}
+                                        style={{ width: `${overallProgress}%` }}
                                     ></div>
                                 </div>
                             </div>
                             
                             <div className="bg-white p-6 rounded-lg border border-gray-200 text-center">
-                                <div className="text-3xl font-bold text-secondary mb-2">+12%</div>
+                                <div className="text-3xl font-bold text-secondary mb-2">{weeklyProgress}%</div>
                                 <div className="text-gray-600">Weekly Progress</div>
-                                <div className="text-sm text-gray-500 mt-2">This Month: 8/12</div>
-                                <div className="text-sm text-gray-500">Streak: 3 weeks</div>
+                                <div className="text-sm text-gray-500 mt-2">Todos: {completedTodos}/{totalTodos}</div>
+                                <div className="text-sm text-gray-500">Goals: {completedWeeklyItems}/{totalWeeklyItems}</div>
                             </div>
                         </div>
                         
@@ -1676,8 +1846,7 @@
                                 type="button"
                                 onClick={(e) => {
                                     e.preventDefault();
-                                    // TODO: Implement detailed progress report
-                                    console.log('Detailed progress report clicked');
+                                    setShowProgressReport(true);
                                 }}
                                 className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
                             >
@@ -1685,6 +1854,155 @@
                             </button>
                         </div>
                     </div>
+
+                    {/* Detailed Progress Report Modal */}
+                    {showProgressReport && (
+                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                            <div className="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+                                <div className="p-6 border-b border-gray-200">
+                                    <div className="flex items-center justify-between">
+                                        <h3 className="text-2xl font-bold text-gray-800">📊 Detailed Progress Report</h3>
+                                        <button
+                                            type="button"
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                setShowProgressReport(false);
+                                            }}
+                                            className="text-gray-400 hover:text-gray-600 text-2xl"
+                                        >
+                                            ×
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <div className="p-6 space-y-8">
+                                    {/* Overall Summary */}
+                                    <div className="bg-gray-50 p-6 rounded-lg">
+                                        <h4 className="text-xl font-semibold text-gray-800 mb-4">Overall Summary</h4>
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                            <div className="text-center">
+                                                <div className="text-3xl font-bold text-primary">{overallProgress}%</div>
+                                                <div className="text-sm text-gray-600">Overall Progress</div>
+                                            </div>
+                                            <div className="text-center">
+                                                <div className="text-3xl font-bold text-blue-600">{totalLists}</div>
+                                                <div className="text-sm text-gray-600">Active Lists</div>
+                                            </div>
+                                            <div className="text-center">
+                                                <div className="text-3xl font-bold text-green-600">{totalTodos + totalDashboardGoals}</div>
+                                                <div className="text-sm text-gray-600">Total Items</div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Weekly Progress Breakdown */}
+                                    <div>
+                                        <h4 className="text-xl font-semibold text-gray-800 mb-4">Weekly Progress Breakdown</h4>
+                                        <div className="space-y-4">
+                                            <div className="bg-white p-4 rounded-lg border border-gray-200">
+                                                <div className="flex items-center justify-between mb-2">
+                                                    <span className="font-medium">✅ To-Do List</span>
+                                                    <span className="text-sm text-gray-600">{completedTodos}/{totalTodos}</span>
+                                                </div>
+                                                <div className="w-full bg-gray-200 rounded-full h-2">
+                                                    <div 
+                                                        className="bg-blue-500 h-2 rounded-full transition-all duration-500"
+                                                        style={{ width: `${todoCompletionRate}%` }}
+                                                    ></div>
+                                                </div>
+                                                <div className="text-sm text-gray-500 mt-1">{todoCompletionRate}% Complete</div>
+                                            </div>
+                                            
+                                            <div className="bg-white p-4 rounded-lg border border-gray-200">
+                                                <div className="flex items-center justify-between mb-2">
+                                                    <span className="font-medium">🎯 Weekly Goals</span>
+                                                    <span className="text-sm text-gray-600">{completedWeeklyItems}/{totalWeeklyItems}</span>
+                                                </div>
+                                                <div className="w-full bg-gray-200 rounded-full h-2">
+                                                    <div 
+                                                        className="bg-green-500 h-2 rounded-full transition-all duration-500"
+                                                        style={{ width: `${weeklyProgress}%` }}
+                                                    ></div>
+                                                </div>
+                                                <div className="text-sm text-gray-500 mt-1">{weeklyProgress}% Complete</div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Long-term Goals Progress */}
+                                    <div>
+                                        <h4 className="text-xl font-semibold text-gray-800 mb-4">Long-term Goals Progress</h4>
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                            <div className="bg-white p-4 rounded-lg border border-gray-200 text-center">
+                                                <h5 className="font-medium text-gray-800 mb-2">1 Year Goals</h5>
+                                                <div className="text-2xl font-bold text-green-600 mb-1">
+                                                    {goals.oneYear.filter(g => g.completed).length}/{goals.oneYear.length}
+                                                </div>
+                                                <div className="text-sm text-gray-500">
+                                                    {goals.oneYear.length > 0 ? Math.round((goals.oneYear.filter(g => g.completed).length / goals.oneYear.length) * 100) : 0}% Complete
+                                                </div>
+                                            </div>
+                                            
+                                            <div className="bg-white p-4 rounded-lg border border-gray-200 text-center">
+                                                <h5 className="font-medium text-gray-800 mb-2">5 Year Goals</h5>
+                                                <div className="text-2xl font-bold text-orange-600 mb-1">
+                                                    {goals.fiveYear.filter(g => g.completed).length}/{goals.fiveYear.length}
+                                                </div>
+                                                <div className="text-sm text-gray-500">
+                                                    {goals.fiveYear.length > 0 ? Math.round((goals.fiveYear.filter(g => g.completed).length / goals.fiveYear.length) * 100) : 0}% Complete
+                                                </div>
+                                            </div>
+                                            
+                                            <div className="bg-white p-4 rounded-lg border border-gray-200 text-center">
+                                                <h5 className="font-medium text-gray-800 mb-2">10 Year Goals</h5>
+                                                <div className="text-2xl font-bold text-purple-600 mb-1">
+                                                    {goals.tenYear.filter(g => g.completed).length}/{goals.tenYear.length}
+                                                </div>
+                                                <div className="text-sm text-gray-500">
+                                                    {goals.tenYear.length > 0 ? Math.round((goals.tenYear.filter(g => g.completed).length / goals.tenYear.length) * 100) : 0}% Complete
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Recommendations */}
+                                    <div className="bg-blue-50 p-6 rounded-lg">
+                                        <h4 className="text-xl font-semibold text-blue-800 mb-4">💡 Recommendations</h4>
+                                        <div className="space-y-2 text-blue-700">
+                                            {overallProgress < 30 && (
+                                                <p>• Focus on completing 2-3 small tasks daily to build momentum</p>
+                                            )}
+                                            {overallProgress >= 30 && overallProgress < 70 && (
+                                                <p>• Great progress! Consider setting more challenging goals</p>
+                                            )}
+                                            {overallProgress >= 70 && (
+                                                <p>• Excellent work! You're on track to achieve your family vision</p>
+                                            )}
+                                            {todoCompletionRate < 50 && (
+                                                <p>• Break down large to-dos into smaller, manageable steps</p>
+                                            )}
+                                            {weeklyProgress < 50 && (
+                                                <p>• Review your weekly goals and adjust priorities if needed</p>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div className="p-6 border-t border-gray-200 text-center">
+                                    <button
+                                        type="button"
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            setShowProgressReport(false);
+                                        }}
+                                        className="px-6 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
+                                    >
+                                        Close Report
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
             );
         };
@@ -1703,6 +2021,17 @@
             const [userLoading, setUserLoading] = useState(false); // Added user loading state
             const [showDashboard, setShowDashboard] = useState(false); // Added dashboard toggle state
             const [scrollToSection, setScrollToSection] = useState(null); // Added scroll target state
+
+            // Timeline goals state for both dashboard and weekly planner
+            const [timelineGoals, setTimelineGoals] = useState({
+                monthly: [],
+                oneYear: [],
+                fiveYear: [],
+                tenYear: []
+            });
+
+            // New goal input state for both components
+            const [newGoal, setNewGoal] = useState({ timeline: 'monthly', text: '' });
 
             // Use the new useWeekData hook - only load data when user is authenticated
             const currentWeekKey = formatWeekKey(currentDate);
@@ -1751,6 +2080,86 @@
             const navigateToGrocery = () => navigateToSection('grocery-section');
             const navigateToUnconfessedSin = () => navigateToSection('unconfessed-sin-section');
             const navigateToWeeklyWinddown = () => navigateToSection('weekly-winddown-section');
+
+            // Timeline goals management functions - COMPLETELY REWRITTEN
+            const addTimelineGoal = (timeline, text) => {
+                if (text.trim()) {
+                    const newGoal = {
+                        id: Date.now() + Math.random(),
+                        text: text.trim(),
+                        completed: false,
+                        timeline: timeline
+                    };
+                    
+                    console.log('🎯 Adding goal:', { timeline, text: text.trim(), newGoal });
+                    console.log('🎯 Current timelineGoals before:', timelineGoals);
+                    
+                    // Update the local timelineGoals state
+                    setTimelineGoals(prev => {
+                        const updated = {
+                            ...prev,
+                            [timeline]: [...prev[timeline], newGoal]
+                        };
+                        console.log('🎯 Updated timelineGoals:', updated);
+                        return updated;
+                    });
+                    
+                    // Also update the main weekData for persistence
+                    if (weekData) {
+                        const updatedGoals = [...(weekData.goals || [])];
+                        updatedGoals.push(newGoal);
+                        console.log('🎯 Updated weekData goals:', updatedGoals);
+                        setWeekData(prev => ({ ...prev, goals: updatedGoals }));
+                    }
+                }
+            };
+
+            const toggleTimelineGoal = (timeline, goalId) => {
+                // Update local state
+                setTimelineGoals(prev => ({
+                    ...prev,
+                    [timeline]: prev[timeline].map(goal => 
+                        goal.id === goalId ? { ...goal, completed: !goal.completed } : goal
+                    )
+                }));
+                
+                // Update main weekData
+                if (weekData?.goals) {
+                    const updatedGoals = weekData.goals.map(goal => 
+                        goal.id === goalId ? { ...goal, completed: !goal.completed } : goal
+                    );
+                    setWeekData(prev => ({ ...prev, goals: updatedGoals }));
+                }
+            };
+
+            const removeTimelineGoal = (timeline, goalId) => {
+                // Update local state
+                setTimelineGoals(prev => ({
+                    ...prev,
+                    [timeline]: prev[timeline].filter(goal => goal.id !== goalId)
+                }));
+                
+                // Update main weekData
+                if (weekData?.goals) {
+                    const updatedGoals = weekData.goals.filter(goal => goal.id !== goalId);
+                    setWeekData(prev => ({ ...prev, goals: updatedGoals }));
+                }
+            };
+
+            // Initialize timeline goals from weekData when it changes
+            useEffect(() => {
+                if (weekData?.goals) {
+                    // Categorize existing goals by their timeline property
+                    const existingGoals = weekData.goals;
+                    const categorized = {
+                        monthly: existingGoals.filter(goal => goal && goal.timeline === 'monthly'),
+                        oneYear: existingGoals.filter(goal => goal && goal.timeline === 'oneYear'),
+                        fiveYear: existingGoals.filter(goal => goal && goal.timeline === 'fiveYear'),
+                        tenYear: existingGoals.filter(goal => goal && goal.timeline === 'tenYear')
+                    };
+                    setTimelineGoals(categorized);
+                }
+            }, [weekData?.goals]);
 
             // Test Neon connection and initialize users table after authentication is complete
             useEffect(() => {
@@ -2163,9 +2572,9 @@
                                         <h3 className="font-semibold text-gray-800 mb-3">📊 Data Stats</h3>
                                         <div className="space-y-2 text-sm">
                                             <div><span className="font-medium">Current Week:</span> {formatWeekDisplay(currentDate)}</div>
-                                            <div><span className="font-medium">Schedule Items:</span> {Object.values(currentWeekData.schedule || {}).flat().filter(item => item.trim()).length}</div>
-                                            <div><span className="font-medium">Todos:</span> {(currentWeekData.todos || []).length}</div>
-                                            <div><span className="font-medium">Prayers:</span> {(currentWeekData.prayers || []).length}</div>
+                                            <div><span className="font-medium">Schedule Items:</span> {Object.values(weekData?.schedule || {}).flat().filter(item => item.trim()).length}</div>
+                                            <div><span className="font-medium">Todos:</span> {(weekData?.todos || []).length}</div>
+                                            <div><span className="font-medium">Prayers:</span> {(weekData?.prayers || []).length}</div>
                                         </div>
                                     </div>
                                     
@@ -2215,7 +2624,7 @@
                                             <button
                                                 onClick={() => {
                                                     console.log('🔍 Debug data...');
-                                                    console.log('Current weekData:', currentWeekData);
+                                                    console.log('Current weekData:', weekData);
                                                     console.log('Current error:', error);
                                                     console.log('Current loading state:', isLoading);
                                                 }}
@@ -2451,6 +2860,35 @@
 
                         <div className="section-divider"></div>
 
+                        {/* User Info and Logout */}
+                        <div className="flex justify-between items-center mb-6">
+                            <div className="text-sm text-gray-600">
+                                Logged in as: <span className="font-medium text-gray-800">{user?.display_name || user?.email}</span>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    // Clear authentication
+                                    localStorage.removeItem('marriageMeetingAuth');
+                                    window.currentAuthenticatedUser = null;
+                                    setUser(null);
+                                    setIsAdmin(false);
+                                    // Don't set authLoading to true - let the existing auth flow handle it
+                                    // Reset timeline goals
+                                    setTimelineGoals({
+                                        monthly: [],
+                                        oneYear: [],
+                                        fiveYear: [],
+                                        tenYear: []
+                                    });
+                                }}
+                                className="px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors text-sm font-medium"
+                            >
+                                🚪 Sign Out
+                            </button>
+                        </div>
+
                         {/* Navigation Tabs */}
                         <div className="flex justify-center mb-8">
                             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-1">
@@ -2489,12 +2927,18 @@
                         {showDashboard ? (
                             <FamilyDashboard 
                                 weekData={currentWeekData}
+                                timelineGoals={timelineGoals}
+                                newGoal={newGoal}
+                                setNewGoal={setNewGoal}
                                 onNavigateToTodos={navigateToTodos}
                                 onNavigateToPrayers={navigateToPrayers}
                                 onNavigateToGoals={navigateToGoals}
                                 onNavigateToGrocery={navigateToGrocery}
                                 onNavigateToUnconfessedSin={navigateToUnconfessedSin}
                                 onNavigateToWeeklyWinddown={navigateToWeeklyWinddown}
+                                onAddTimelineGoal={addTimelineGoal}
+                                onToggleTimelineGoal={toggleTimelineGoal}
+                                onRemoveTimelineGoal={removeTimelineGoal}
                             />
                         ) : (
                             <>
@@ -2602,22 +3046,22 @@
                                                 <p className="text-sm text-gray-600">Your family's short and long-term aspirations</p>
                                             </div>
                                             
-                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                                                {/* 1 Year Goals */}
+                                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+                                                {/* Monthly Goals */}
                                                 <div className="bg-white p-4 rounded-lg border border-gray-200">
-                                                    <h4 className="font-semibold text-gray-800 mb-3 text-center">1 Year</h4>
+                                                    <h4 className="font-semibold text-gray-800 mb-3 text-center">📅 Monthly</h4>
                                                     <div className="space-y-2 mb-3">
-                                                        {(currentWeekData.goals || []).slice(0, 3).map((goal, index) => {
+                                                        {(timelineGoals?.monthly || []).filter(goal => goal !== null).map((goal, index) => {
                                                             const goalText = typeof goal === 'object' ? goal.text : goal;
                                                             const isCompleted = typeof goal === 'object' ? goal.completed : false;
                                                             
                                                             return (
-                                                                <div key={index} className="flex items-center gap-2">
+                                                                <div key={goal.id || index} className="flex items-center gap-2">
                                                                     <button
                                                                         type="button"
                                                                         onClick={(e) => {
                                                                             e.preventDefault();
-                                                                            toggleListItem('goals', goal.id || index);
+                                                                            toggleTimelineGoal('monthly', goal.id || index);
                                                                         }}
                                                                         className={`w-4 h-4 rounded border-2 flex items-center justify-center ${
                                                                             isCompleted 
@@ -2627,21 +3071,116 @@
                                                                     >
                                                                         {isCompleted && '✓'}
                                                                     </button>
-                                                                    <span className={`text-sm ${isCompleted ? 'line-through text-gray-500' : 'text-gray-700'}`}>
+                                                                    <span className={`text-sm flex-1 ${isCompleted ? 'line-through text-gray-500' : 'text-gray-700'}`}>
                                                                         {goalText}
                                                                     </span>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={(e) => {
+                                                                            e.preventDefault();
+                                                                            removeTimelineGoal('monthly', goal.id || index);
+                                                                        }}
+                                                                        className="text-red-500 hover:text-red-700 text-xs ml-auto"
+                                                                    >
+                                                                        ×
+                                                                    </button>
                                                                 </div>
                                                             );
                                                         })}
                                                     </div>
-                                                    <div className="text-center">
+                                                    <div className="space-y-2">
+                                                        <input
+                                                            type="text"
+                                                            placeholder="New monthly goal..."
+                                                            className="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                            onKeyPress={(e) => {
+                                                                if (e.key === 'Enter' && e.target.value.trim()) {
+                                                                    addTimelineGoal('monthly', e.target.value.trim());
+                                                                    e.target.value = '';
+                                                                }
+                                                            }}
+                                                        />
                                                         <button
                                                             type="button"
                                                             onClick={(e) => {
                                                                 e.preventDefault();
-                                                                addListItem('goals', 'New 1-year goal...');
+                                                                const input = e.target.previousElementSibling;
+                                                                if (input.value.trim()) {
+                                                                    addTimelineGoal('monthly', input.value.trim());
+                                                                    input.value = '';
+                                                                }
                                                             }}
-                                                            className="w-full px-3 py-2 bg-green-100 text-green-700 rounded hover:bg-green-200 transition-colors text-sm"
+                                                            className="w-full px-3 py-2 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors text-sm"
+                                                        >
+                                                            + Add Goal
+                                                        </button>
+                                                    </div>
+                                                </div>
+
+                                                {/* 1 Year Goals */}
+                                                <div className="bg-white p-4 rounded-lg border border-gray-200">
+                                                    <h4 className="font-semibold text-gray-800 mb-3 text-center">1 Year</h4>
+                                                    <div className="space-y-2 mb-3">
+                                                        {(timelineGoals?.oneYear || []).filter(goal => goal !== null).map((goal, index) => {
+                                                            const goalText = typeof goal === 'object' ? goal.text : goal;
+                                                            const isCompleted = typeof goal === 'object' ? goal.completed : false;
+                                                            
+                                                            return (
+                                                                <div key={goal.id || index} className="flex items-center gap-2">
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={(e) => {
+                                                                            e.preventDefault();
+                                                                            toggleTimelineGoal('oneYear', goal.id || index);
+                                                                        }}
+                                                                        className={`w-4 h-4 rounded border-2 flex items-center justify-center ${
+                                                                            isCompleted 
+                                                                                ? 'bg-green-500 border-green-500 text-white' 
+                                                                                : 'border-gray-300'
+                                                                        }`}
+                                                                    >
+                                                                        {isCompleted && '✓'}
+                                                                    </button>
+                                                                    <span className={`text-sm flex-1 ${isCompleted ? 'line-through text-gray-500' : 'text-gray-700'}`}>
+                                                                        {goalText}
+                                                                    </span>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={(e) => {
+                                                                            e.preventDefault();
+                                                                            removeTimelineGoal('oneYear', goal.id || index);
+                                                                        }}
+                                                                        className="text-red-500 hover:text-red-700 text-xs ml-auto"
+                                                                    >
+                                                                        ×
+                                                                    </button>
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                    <div className="space-y-2">
+                                                        <input
+                                                            type="text"
+                                                            placeholder="New 1 year goal..."
+                                                            className="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                            onKeyPress={(e) => {
+                                                                if (e.key === 'Enter' && e.target.value.trim()) {
+                                                                    addTimelineGoal('oneYear', e.target.value.trim());
+                                                                    e.target.value = '';
+                                                                }
+                                                            }}
+                                                        />
+                                                        <button
+                                                            type="button"
+                                                            onClick={(e) => {
+                                                                e.preventDefault();
+                                                                const input = e.target.previousElementSibling;
+                                                                if (input.value.trim()) {
+                                                                    addTimelineGoal('oneYear', input.value.trim());
+                                                                    input.value = '';
+                                                                }
+                                                            }}
+                                                            className="w-full px-3 py-2 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors text-sm"
                                                         >
                                                             + Add Goal
                                                         </button>
@@ -2652,17 +3191,17 @@
                                                 <div className="bg-white p-4 rounded-lg border border-gray-200">
                                                     <h4 className="font-semibold text-gray-800 mb-3 text-center">5 Years</h4>
                                                     <div className="space-y-2 mb-3">
-                                                        {(currentWeekData.goals || []).slice(3, 6).map((goal, index) => {
+                                                        {(timelineGoals?.fiveYear || []).filter(goal => goal !== null).map((goal, index) => {
                                                             const goalText = typeof goal === 'object' ? goal.text : goal;
                                                             const isCompleted = typeof goal === 'object' ? goal.completed : false;
                                                             
                                                             return (
-                                                                <div key={index + 3} className="flex items-center gap-2">
+                                                                <div key={goal.id || index} className="flex items-center gap-2">
                                                                     <button
                                                                         type="button"
                                                                         onClick={(e) => {
                                                                             e.preventDefault();
-                                                                            toggleListItem('goals', goal.id || (index + 3));
+                                                                            toggleTimelineGoal('fiveYear', goal.id || index);
                                                                         }}
                                                                         className={`w-4 h-4 rounded border-2 flex items-center justify-center ${
                                                                             isCompleted 
@@ -2672,21 +3211,46 @@
                                                                     >
                                                                         {isCompleted && '✓'}
                                                                     </button>
-                                                                    <span className={`text-sm ${isCompleted ? 'line-through text-gray-500' : 'text-gray-700'}`}>
+                                                                    <span className={`text-sm flex-1 ${isCompleted ? 'line-through text-gray-500' : 'text-gray-700'}`}>
                                                                         {goalText}
                                                                     </span>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={(e) => {
+                                                                            e.preventDefault();
+                                                                            removeTimelineGoal('fiveYear', goal.id || index);
+                                                                        }}
+                                                                        className="text-red-500 hover:text-red-700 text-xs ml-auto"
+                                                                    >
+                                                                        ×
+                                                                    </button>
                                                                 </div>
                                                             );
                                                         })}
                                                     </div>
-                                                    <div className="text-center">
+                                                    <div className="space-y-2">
+                                                        <input
+                                                            type="text"
+                                                            placeholder="New 5 year goal..."
+                                                            className="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                            onKeyPress={(e) => {
+                                                                if (e.key === 'Enter' && e.target.value.trim()) {
+                                                                    addTimelineGoal('fiveYear', e.target.value.trim());
+                                                                    e.target.value = '';
+                                                                }
+                                                            }}
+                                                        />
                                                         <button
                                                             type="button"
                                                             onClick={(e) => {
                                                                 e.preventDefault();
-                                                                addListItem('goals', 'New 5-year goal...');
+                                                                const input = e.target.previousElementSibling;
+                                                                if (input.value.trim()) {
+                                                                    addTimelineGoal('fiveYear', input.value.trim());
+                                                                    input.value = '';
+                                                                }
                                                             }}
-                                                            className="w-full px-3 py-2 bg-green-100 text-green-700 rounded hover:bg-green-200 transition-colors text-sm"
+                                                            className="w-full px-3 py-2 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors text-sm"
                                                         >
                                                             + Add Goal
                                                         </button>
@@ -2697,17 +3261,17 @@
                                                 <div className="bg-white p-4 rounded-lg border border-gray-200">
                                                     <h4 className="font-semibold text-gray-800 mb-3 text-center">10 Years</h4>
                                                     <div className="space-y-2 mb-3">
-                                                        {(currentWeekData.goals || []).slice(6, 9).map((goal, index) => {
+                                                        {(timelineGoals?.tenYear || []).filter(goal => goal !== null).map((goal, index) => {
                                                             const goalText = typeof goal === 'object' ? goal.text : goal;
                                                             const isCompleted = typeof goal === 'object' ? goal.completed : false;
                                                             
                                                             return (
-                                                                <div key={index + 6} className="flex items-center gap-2">
+                                                                <div key={goal.id || index} className="flex items-center gap-2">
                                                                     <button
                                                                         type="button"
                                                                         onClick={(e) => {
                                                                             e.preventDefault();
-                                                                            toggleListItem('goals', goal.id || (index + 6));
+                                                                            toggleTimelineGoal('tenYear', goal.id || index);
                                                                         }}
                                                                         className={`w-4 h-4 rounded border-2 flex items-center justify-center ${
                                                                             isCompleted 
@@ -2717,59 +3281,98 @@
                                                                     >
                                                                         {isCompleted && '✓'}
                                                                     </button>
-                                                                    <span className={`text-sm ${isCompleted ? 'line-through text-gray-500' : 'text-gray-700'}`}>
+                                                                    <span className={`text-sm flex-1 ${isCompleted ? 'line-through text-gray-500' : 'text-gray-700'}`}>
                                                                         {goalText}
                                                                     </span>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={(e) => {
+                                                                            e.preventDefault();
+                                                                            removeTimelineGoal('tenYear', goal.id || index);
+                                                                        }}
+                                                                        className="text-red-500 hover:text-red-700 text-xs ml-auto"
+                                                                    >
+                                                                        ×
+                                                                    </button>
                                                                 </div>
                                                             );
                                                         })}
                                                     </div>
-                                                    <div className="text-center">
+                                                    <div className="space-y-2">
+                                                        <input
+                                                            type="text"
+                                                            placeholder="New 10 year goal..."
+                                                            className="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                            onKeyPress={(e) => {
+                                                                if (e.key === 'Enter' && e.target.value.trim()) {
+                                                                    addTimelineGoal('tenYear', e.target.value.trim());
+                                                                    e.target.value = '';
+                                                                }
+                                                            }}
+                                                        />
                                                         <button
                                                             type="button"
                                                             onClick={(e) => {
                                                                 e.preventDefault();
-                                                                addListItem('goals', 'New 10-year goal...');
+                                                                const input = e.target.previousElementSibling;
+                                                                if (input.value.trim()) {
+                                                                    addTimelineGoal('tenYear', input.value.trim());
+                                                                    input.value = '';
+                                                                }
                                                             }}
-                                                            className="w-full px-3 py-2 bg-green-100 text-green-700 rounded hover:bg-green-200 transition-colors text-sm"
+                                                            className="w-full px-3 py-2 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors text-sm"
                                                         >
                                                             + Add Goal
                                                         </button>
                                                     </div>
                                                 </div>
                                             </div>
-
-                                            {/* Quick Add Goal */}
-                                            <div className="bg-gray-50 p-4 rounded-lg">
-                                                <h4 className="font-medium text-gray-800 mb-3 text-center">Quick Add Goal</h4>
-                                                <div className="flex gap-3">
-                                                    <input
-                                                        type="text"
-                                                        placeholder="Enter your goal..."
-                                                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-                                                        onKeyPress={(e) => {
+                                        </div>
+                                    </div>
+                                    
+                                    {/* Quick Add Goal */}
+                                    <div className="bg-gray-50 p-4 rounded-lg mb-6">
+                                        <h4 className="font-medium text-gray-800 mb-3 text-center">Quick Add Goal</h4>
+                                        <p className="text-sm text-gray-500 text-center mb-4">
+                                            Add a goal to any timeline category, or use the individual inputs above for specific timelines
+                                        </p>
+                                        <div className="flex gap-3">
+                                            <select
+                                                className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                                                onChange={(e) => setNewGoal(prev => ({ ...prev, timeline: e.target.value }))}
+                                                value={newGoal.timeline}
+                                            >
+                                                <option value="monthly">📅 Monthly</option>
+                                                <option value="oneYear">1 Year</option>
+                                                <option value="fiveYear">5 Years</option>
+                                                <option value="tenYear">10 Years</option>
+                                            </select>
+                                            <input
+                                                type="text"
+                                                placeholder="Enter your goal..."
+                                                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                                                value={newGoal.text}
+                                                onChange={(e) => setNewGoal(prev => ({ ...prev, text: e.target.value }))}
+                                                                                                        onKeyPress={(e) => {
                                                             if (e.key === 'Enter' && e.target.value.trim()) {
-                                                                addListItem('goals', e.target.value.trim());
-                                                                e.target.value = '';
+                                                                addTimelineGoal(newGoal.timeline, e.target.value.trim());
+                                                                setNewGoal(prev => ({ ...prev, text: '' }));
                                                             }
                                                         }}
-                                                    />
-                                                    <button
-                                                        type="button"
-                                                        onClick={(e) => {
-                                                            e.preventDefault();
-                                                            const input = e.target.previousElementSibling;
-                                                            if (input.value.trim()) {
-                                                                addListItem('goals', input.value.trim());
-                                                                input.value = '';
-                                                            }
-                                                        }}
-                                                        className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
-                                                    >
-                                                        Add
-                                                    </button>
-                                                </div>
-                                            </div>
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={(e) => {
+                                                    e.preventDefault();
+                                                    if (newGoal.text.trim()) {
+                                                        addTimelineGoal(newGoal.timeline, newGoal.text.trim());
+                                                        setNewGoal(prev => ({ ...prev, text: '' }));
+                                                    }
+                                                }}
+                                                className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
+                                            >
+                                                Add Goal
+                                            </button>
                                         </div>
                                     </div>
                                     

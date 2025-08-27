@@ -1092,7 +1092,7 @@
                     setFamilyVision(defaultVision);
                     setVisionEditValue(defaultVision);
                 }
-            }, [weekData?.familyVision]);
+            }, [weekData]); // Only run when weekData changes, not when familyVision changes
 
             const handleVisionSave = () => {
                 const newVision = visionEditValue.trim();

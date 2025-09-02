@@ -2082,8 +2082,26 @@
 
         // Main App Component (Based on Production Structure)
         const App = () => {
-            // Current date state - OVERRIDE to use week with good data
-            const [currentDate, setCurrentDate] = useState(new Date('2025-08-26'));
+            // Current date state - Use actual current date, not hardcoded
+            const [currentDate, setCurrentDate] = useState(() => {
+                // Try to restore the last viewed week from localStorage
+                const savedWeek = localStorage.getItem('marriageMeetingLastWeek');
+                if (savedWeek) {
+                    try {
+                        return new Date(savedWeek);
+                    } catch (e) {
+                        console.log('Could not parse saved week, using current date');
+                    }
+                }
+                return new Date();
+            });
+            
+            // Dashboard state with persistence
+            const [showDashboard, setShowDashboard] = useState(() => {
+                const saved = localStorage.getItem('marriageMeetingShowDashboard');
+                return saved ? JSON.parse(saved) : false;
+            });
+            
             const [lastSaved, setLastSaved] = useState(null);
             
             // Authentication state
@@ -2093,7 +2111,6 @@
             const [showAdmin, setShowAdmin] = useState(false); // Added showAdmin state
             const [users, setUsers] = useState([]); // Added users state
             const [userLoading, setUserLoading] = useState(false); // Added user loading state
-            const [showDashboard, setShowDashboard] = useState(false); // Added dashboard toggle state
             const [scrollToSection, setScrollToSection] = useState(null); // Added scroll target state
 
             // Timeline goals state for both dashboard and weekly planner
@@ -2180,10 +2197,9 @@
                         return updated;
                     });
                     
-                    // Also update the main weekData for persistence
+                    // Also update the main weekData for persistence - this triggers auto-save
                     if (weekData) {
-                        const updatedGoals = [...(weekData.goals || [])];
-                        updatedGoals.push(newGoal);
+                        const updatedGoals = [...(weekData.goals || []), newGoal];
                         console.log('🎯 Updated weekData goals:', updatedGoals);
                         setWeekData(prev => ({ ...prev, goals: updatedGoals }));
                     }
@@ -2228,19 +2244,20 @@
                     const goalMonth = goalDate.getMonth();
                     const goalYear = goalDate.getFullYear();
                     
-                    // Monthly goals: Same month (regardless of year)
-                    if (goalMonth === currentMonth) {
+                    // Monthly goals: Same month (regardless of year) OR goals created this month
+                    if (goalMonth === currentMonth || 
+                        (goalYear === currentYear && goalMonth === currentMonth)) {
                         categorized.monthly.push(goal);
                     }
-                    // 1 year goals: Within 1 year of creation
+                    // 1 year goals: Within 1 year of creation OR goals created this year/last year
                     else if (goalYear === currentYear || goalYear === currentYear - 1) {
                         categorized.oneYear.push(goal);
                     }
-                    // 5 year goals: Within 5 years of creation
+                    // 5 year goals: Within 5 years of creation OR goals created 2-5 years ago
                     else if (goalYear >= currentYear - 5 && goalYear < currentYear) {
                         categorized.fiveYear.push(goal);
                     }
-                    // 10 year goals: Within 10 years of creation
+                    // 10 year goals: Within 10 years of creation OR goals created 6+ years ago
                     else if (goalYear >= currentYear - 10 && goalYear < currentYear - 5) {
                         categorized.tenYear.push(goal);
                     }
@@ -2262,7 +2279,7 @@
                     )
                 }));
                 
-                // Update main weekData
+                // Update main weekData to trigger auto-save
                 if (weekData?.goals) {
                     const updatedGoals = weekData.goals.map(goal => 
                         goal.id === goalId ? { ...goal, completed: !goal.completed } : goal
@@ -2278,7 +2295,7 @@
                     [timeline]: prev[timeline].filter(goal => goal.id !== goalId)
                 }));
                 
-                // Update main weekData
+                // Update main weekData to trigger auto-save
                 if (weekData?.goals) {
                     const updatedGoals = weekData.goals.filter(goal => goal.id !== goalId);
                     setWeekData(prev => ({ ...prev, goals: updatedGoals }));
@@ -2597,6 +2614,16 @@
                     </div>
                 );
             }
+
+            // Persist dashboard state changes
+            useEffect(() => {
+                localStorage.setItem('marriageMeetingShowDashboard', JSON.stringify(showDashboard));
+            }, [showDashboard]);
+            
+            // Persist current week changes
+            useEffect(() => {
+                localStorage.setItem('marriageMeetingLastWeek', currentDate.toISOString());
+            }, [currentDate]);
 
             return (
                 <div className="min-h-screen">

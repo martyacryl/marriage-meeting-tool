@@ -2295,52 +2295,37 @@
                         return;
                     }
                     
-                    console.log(`🎯 Processing goal ${index}:`, { text: goal.text, createdAt: goal.createdAt });
+                    console.log(`🎯 Processing goal ${index}:`, { text: goal.text, createdAt: goal.createdAt, timeline: goal.timeline });
                     
-                    // Get goal creation date - if none exists, use a default date
-                    let goalDate;
-                    if (goal.createdAt) {
-                        goalDate = new Date(goal.createdAt);
-                    } else {
-                        // For goals without creation dates, assume they were created recently
-                        goalDate = new Date(currentDate.getFullYear() - 1, currentDate.getMonth(), currentDate.getDate());
-                        console.log(`📝 Goal ${index} has no createdAt, using default date:`, goalDate.toISOString());
-                    }
-                    
-                    const goalMonth = goalDate.getMonth();
-                    const goalYear = goalDate.getFullYear();
-                    
-                    // Calculate how many years ago the goal was created
-                    const yearsAgo = currentYear - goalYear;
-                    
-                    console.log(`📊 Goal ${index} date info:`, { goalMonth, goalYear, yearsAgo });
-                    
-                    // Simple, dynamic categorization based on creation date
-                    if (yearsAgo === 0) {
-                        // This year - monthly or 1 year
-                        if (goalMonth === currentMonth) {
-                            categorized.monthly.push(goal);
-                            console.log(`✅ Goal ${index} added to monthly`);
-                        } else {
-                            categorized.oneYear.push(goal);
-                            console.log(`✅ Goal ${index} added to oneYear`);
+                    // If goal has a timeline property, use that for categorization
+                    if (goal.timeline) {
+                        console.log(`📋 Goal ${index} has timeline property: ${goal.timeline}`);
+                        switch (goal.timeline) {
+                            case 'monthly':
+                                categorized.monthly.push(goal);
+                                console.log(`✅ Goal ${index} added to monthly (from timeline)`);
+                                break;
+                            case 'oneYear':
+                                categorized.oneYear.push(goal);
+                                console.log(`✅ Goal ${index} added to oneYear (from timeline)`);
+                                break;
+                            case 'fiveYear':
+                                categorized.fiveYear.push(goal);
+                                console.log(`✅ Goal ${index} added to fiveYear (from timeline)`);
+                                break;
+                            case 'tenYear':
+                                categorized.tenYear.push(goal);
+                                console.log(`✅ Goal ${index} added to tenYear (from timeline)`);
+                                break;
+                            default:
+                                // Fallback to date-based categorization
+                                console.log(`⚠️ Goal ${index} has unknown timeline: ${goal.timeline}, using date-based categorization`);
+                                categorizeByDate(goal, index, categorized, currentDate, currentMonth, currentYear);
                         }
-                    } else if (yearsAgo === 1) {
-                        // Last year - 1 year
-                        categorized.oneYear.push(goal);
-                        console.log(`✅ Goal ${index} added to oneYear (last year)`);
-                    } else if (yearsAgo >= 2 && yearsAgo <= 5) {
-                        // 2-5 years ago - 5 year
-                        categorized.fiveYear.push(goal);
-                        console.log(`✅ Goal ${index} added to fiveYear`);
-                    } else if (yearsAgo >= 6 && yearsAgo <= 10) {
-                        // 6-10 years ago - 10 year
-                        categorized.tenYear.push(goal);
-                        console.log(`✅ Goal ${index} added to tenYear`);
-                    } else if (yearsAgo > 10) {
-                        // More than 10 years ago - still show in 10 year
-                        categorized.tenYear.push(goal);
-                        console.log(`✅ Goal ${index} added to tenYear (old)`);
+                    } else {
+                        // No timeline property, use date-based categorization
+                        console.log(`📝 Goal ${index} has no timeline, using date-based categorization`);
+                        categorizeByDate(goal, index, categorized, currentDate, currentMonth, currentYear);
                     }
                 });
                 
@@ -2352,6 +2337,55 @@
                 });
                 
                 return categorized;
+            };
+            
+            // Helper function for date-based categorization
+            const categorizeByDate = (goal, index, categorized, currentDate, currentMonth, currentYear) => {
+                // Get goal creation date - if none exists, use a default date
+                let goalDate;
+                if (goal.createdAt) {
+                    goalDate = new Date(goal.createdAt);
+                } else {
+                    // For goals without creation dates, assume they were created recently
+                    goalDate = new Date(currentDate.getFullYear() - 1, currentDate.getMonth(), currentDate.getDate());
+                    console.log(`📝 Goal ${index} has no createdAt, using default date:`, goalDate.toISOString());
+                }
+                
+                const goalMonth = goalDate.getMonth();
+                const goalYear = goalDate.getFullYear();
+                
+                // Calculate how many years ago the goal was created
+                const yearsAgo = currentYear - goalYear;
+                
+                console.log(`📊 Goal ${index} date info:`, { goalMonth, goalYear, yearsAgo });
+                
+                // Simple, dynamic categorization based on creation date
+                if (yearsAgo === 0) {
+                    // This year - monthly or 1 year
+                    if (goalMonth === currentMonth) {
+                        categorized.monthly.push(goal);
+                        console.log(`✅ Goal ${index} added to monthly`);
+                    } else {
+                        categorized.oneYear.push(goal);
+                        console.log(`✅ Goal ${index} added to oneYear`);
+                    }
+                } else if (yearsAgo === 1) {
+                    // Last year - 1 year
+                    categorized.oneYear.push(goal);
+                    console.log(`✅ Goal ${index} added to oneYear (last year)`);
+                } else if (yearsAgo >= 2 && yearsAgo <= 5) {
+                    // 2-5 years ago - 5 year
+                    categorized.fiveYear.push(goal);
+                    console.log(`✅ Goal ${index} added to fiveYear`);
+                } else if (yearsAgo >= 6 && yearsAgo <= 10) {
+                    // 6-10 years ago - 10 year
+                    categorized.tenYear.push(goal);
+                    console.log(`✅ Goal ${index} added to tenYear`);
+                } else if (yearsAgo > 10) {
+                    // More than 10 years ago - still show in 10 year
+                    categorized.tenYear.push(goal);
+                    console.log(`✅ Goal ${index} added to tenYear (old)`);
+                }
             };
 
             const toggleTimelineGoal = (timeline, goalId) => {

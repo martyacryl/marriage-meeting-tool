@@ -529,14 +529,17 @@
                         let data = await dbManager.current.loadWeekData(weekKey, userId);
                         
                         // If no data for current week, try to load the most recent week data
-                        if (!data || Object.keys(data).length === 0 || !data.goals) {
+                        if (!data || Object.keys(data).length === 0 || !data.goals || data.goals.length === 0) {
                             console.log(`🔄 No data for week ${weekKey}, loading most recent week data...`);
                             const allWeeks = await dbManager.current.loadAllWeeksForUser(userId);
                             if (allWeeks && allWeeks.length > 0) {
                                 // Sort by updated_at and get the most recent
                                 allWeeks.sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
                                 data = allWeeks[0].data_content;
-                                console.log(`✅ Loaded data from most recent week: ${allWeeks[0].week_key}`);
+                                console.log(`✅ Loaded data from most recent week: ${allWeeks[0].week_key} with ${data.goals ? data.goals.length : 0} goals`);
+                            } else {
+                                console.log('⚠️ No weeks found for user, using empty structure');
+                                data = dbManager.current.getEmptyWeekStructure();
                             }
                         }
                         
@@ -2271,16 +2274,28 @@
 
             // Function to categorize goals based on current week and creation dates
             const categorizeGoalsByTimeline = (goals, currentWeekDate) => {
-                if (!goals || !Array.isArray(goals)) return { monthly: [], oneYear: [], fiveYear: [], tenYear: [] };
+                console.log('🧮 categorizeGoalsByTimeline called with:', { goalsCount: goals?.length, currentWeekDate });
+                
+                if (!goals || !Array.isArray(goals)) {
+                    console.log('❌ No goals or not array, returning empty categories');
+                    return { monthly: [], oneYear: [], fiveYear: [], tenYear: [] };
+                }
                 
                 const currentDate = new Date(currentWeekDate);
                 const currentMonth = currentDate.getMonth();
                 const currentYear = currentDate.getFullYear();
                 
+                console.log('📅 Current date info:', { currentMonth, currentYear, currentDate: currentDate.toISOString() });
+                
                 const categorized = { monthly: [], oneYear: [], fiveYear: [], tenYear: [] };
                 
-                goals.forEach(goal => {
-                    if (!goal) return;
+                goals.forEach((goal, index) => {
+                    if (!goal) {
+                        console.log(`⚠️ Goal ${index} is null/undefined, skipping`);
+                        return;
+                    }
+                    
+                    console.log(`🎯 Processing goal ${index}:`, { text: goal.text, createdAt: goal.createdAt });
                     
                     // Get goal creation date - if none exists, use a default date
                     let goalDate;
@@ -2289,6 +2304,7 @@
                     } else {
                         // For goals without creation dates, assume they were created recently
                         goalDate = new Date(currentDate.getFullYear() - 1, currentDate.getMonth(), currentDate.getDate());
+                        console.log(`📝 Goal ${index} has no createdAt, using default date:`, goalDate.toISOString());
                     }
                     
                     const goalMonth = goalDate.getMonth();
@@ -2297,27 +2313,42 @@
                     // Calculate how many years ago the goal was created
                     const yearsAgo = currentYear - goalYear;
                     
+                    console.log(`📊 Goal ${index} date info:`, { goalMonth, goalYear, yearsAgo });
+                    
                     // Simple, dynamic categorization based on creation date
                     if (yearsAgo === 0) {
                         // This year - monthly or 1 year
                         if (goalMonth === currentMonth) {
                             categorized.monthly.push(goal);
+                            console.log(`✅ Goal ${index} added to monthly`);
                         } else {
                             categorized.oneYear.push(goal);
+                            console.log(`✅ Goal ${index} added to oneYear`);
                         }
                     } else if (yearsAgo === 1) {
                         // Last year - 1 year
                         categorized.oneYear.push(goal);
+                        console.log(`✅ Goal ${index} added to oneYear (last year)`);
                     } else if (yearsAgo >= 2 && yearsAgo <= 5) {
                         // 2-5 years ago - 5 year
                         categorized.fiveYear.push(goal);
+                        console.log(`✅ Goal ${index} added to fiveYear`);
                     } else if (yearsAgo >= 6 && yearsAgo <= 10) {
                         // 6-10 years ago - 10 year
                         categorized.tenYear.push(goal);
+                        console.log(`✅ Goal ${index} added to tenYear`);
                     } else if (yearsAgo > 10) {
                         // More than 10 years ago - still show in 10 year
                         categorized.tenYear.push(goal);
+                        console.log(`✅ Goal ${index} added to tenYear (old)`);
                     }
+                });
+                
+                console.log('🎯 Final categorization result:', {
+                    monthly: categorized.monthly.length,
+                    oneYear: categorized.oneYear.length,
+                    fiveYear: categorized.fiveYear.length,
+                    tenYear: categorized.tenYear.length
                 });
                 
                 return categorized;

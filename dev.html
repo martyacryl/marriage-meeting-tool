@@ -273,6 +273,35 @@
                 }
             }
 
+            async loadAllWeeksForUser(userId) {
+                try {
+                    const query = `
+                        SELECT week_key, data_content, updated_at 
+                        FROM marriage_meetings_dev 
+                        WHERE user_id = $1 
+                        ORDER BY updated_at DESC
+                    `;
+                    
+                    const result = await this.executeQuery(query, [userId]);
+                    console.log('🔍 [NEON] Loaded all weeks for user:', result);
+                    
+                    if (result && Array.isArray(result) && result.length > 0) {
+                        return result.map(row => ({
+                            week_key: row.week_key,
+                            data_content: typeof row.data_content === 'string' 
+                                ? JSON.parse(row.data_content) 
+                                : row.data_content,
+                            updated_at: row.updated_at
+                        }));
+                    } else {
+                        return [];
+                    }
+                } catch (error) {
+                    console.error('❌ [NEON] Failed to load all weeks for user:', error);
+                    return [];
+                }
+            }
+
             async saveWeekData(weekKey, userId, data) {
                 try {
                     const query = `
@@ -496,8 +525,21 @@
                             throw new Error('Database connection failed');
                         }
 
-                        // Load week data
-                        const data = await dbManager.current.loadWeekData(weekKey, userId);
+                        // Try to load data for the requested week
+                        let data = await dbManager.current.loadWeekData(weekKey, userId);
+                        
+                        // If no data for current week, try to load the most recent week data
+                        if (!data || Object.keys(data).length === 0 || !data.goals) {
+                            console.log(`🔄 No data for week ${weekKey}, loading most recent week data...`);
+                            const allWeeks = await dbManager.current.loadAllWeeksForUser(userId);
+                            if (allWeeks && allWeeks.length > 0) {
+                                // Sort by updated_at and get the most recent
+                                allWeeks.sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
+                                data = allWeeks[0].data_content;
+                                console.log(`✅ Loaded data from most recent week: ${allWeeks[0].week_key}`);
+                            }
+                        }
+                        
                         setWeekData(data);
                         lastSaveData.current = JSON.stringify(data);
                         
@@ -2242,7 +2284,19 @@
                 const categorized = { monthly: [], oneYear: [], fiveYear: [], tenYear: [] };
                 
                 goals.forEach(goal => {
-                    if (!goal || !goal.createdAt) return;
+                    if (!goal) return;
+                    
+                    // Handle goals without creation dates by using their timeline property
+                    if (!goal.createdAt) {
+                        // Use the timeline property if available
+                        if (goal.timeline && categorized[goal.timeline]) {
+                            categorized[goal.timeline].push(goal);
+                        } else {
+                            // Default to monthly if no timeline info
+                            categorized.monthly.push(goal);
+                        }
+                        return;
+                    }
                     
                     const goalDate = new Date(goal.createdAt);
                     const goalMonth = goalDate.getMonth();

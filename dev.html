@@ -1625,7 +1625,7 @@
                                                     type="button"
                                                     onClick={(e) => {
                                                         e.preventDefault();
-                                                        toggleTimelineGoal('monthly', goal.id || index);
+                                                        onToggleTimelineGoal('monthly', goal.id || index);
                                                     }}
                                                     className={`w-4 h-4 rounded border-2 flex items-center justify-center ${
                                                         isCompleted 
@@ -1647,7 +1647,7 @@
                                                     type="button"
                                                     onClick={(e) => {
                                                         e.preventDefault();
-                                                        removeTimelineGoal('monthly', goal.id || index);
+                                                        onRemoveTimelineGoal('monthly', goal.id || index);
                                                     }}
                                                     className="text-red-500 hover:text-red-700 text-xs ml-auto"
                                                 >
@@ -1664,7 +1664,7 @@
                                         className="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                                         onKeyPress={(e) => {
                                             if (e.key === 'Enter' && e.target.value.trim()) {
-                                                addTimelineGoal('monthly', e.target.value.trim());
+                                                onAddTimelineGoal('monthly', e.target.value.trim());
                                                 e.target.value = '';
                                             }
                                         }}
@@ -1675,7 +1675,7 @@
                                             e.preventDefault();
                                             const input = e.target.previousElementSibling;
                                             if (input.value.trim()) {
-                                                addTimelineGoal('monthly', input.value.trim());
+                                                onAddTimelineGoal('monthly', input.value.trim());
                                                 input.value = '';
                                             }
                                         }}
@@ -1704,7 +1704,7 @@
                                                     type="button"
                                                     onClick={(e) => {
                                                         e.preventDefault();
-                                                        toggleTimelineGoal('oneYear', goal.id || index);
+                                                        onToggleTimelineGoal('oneYear', goal.id || index);
                                                     }}
                                                     className={`w-4 h-4 rounded border-2 flex items-center justify-center ${
                                                         isCompleted 
@@ -1726,7 +1726,7 @@
                                                     type="button"
                                                     onClick={(e) => {
                                                         e.preventDefault();
-                                                        removeTimelineGoal('oneYear', goal.id || index);
+                                                        onRemoveTimelineGoal('oneYear', goal.id || index);
                                                     }}
                                                     className="text-red-500 hover:text-red-700 text-xs ml-auto"
                                                 >
@@ -1743,7 +1743,7 @@
                                         className="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                                         onKeyPress={(e) => {
                                             if (e.key === 'Enter' && e.target.value.trim()) {
-                                                addTimelineGoal('oneYear', e.target.value.trim());
+                                                onAddTimelineGoal('oneYear', e.target.value.trim());
                                                 e.target.value = '';
                                             }
                                         }}
@@ -1754,7 +1754,7 @@
                                             e.preventDefault();
                                             const input = e.target.previousElementSibling;
                                             if (input.value.trim()) {
-                                                addTimelineGoal('oneYear', input.value.trim());
+                                                onAddTimelineGoal('oneYear', input.value.trim());
                                                 input.value = '';
                                             }
                                         }}
@@ -1783,7 +1783,7 @@
                                                     type="button"
                                                     onClick={(e) => {
                                                         e.preventDefault();
-                                                        toggleTimelineGoal('fiveYear', goal.id || index);
+                                                        onToggleTimelineGoal('fiveYear', goal.id || index);
                                                     }}
                                                     className={`w-4 h-4 rounded border-2 flex items-center justify-center ${
                                                         isCompleted 
@@ -1805,7 +1805,7 @@
                                                     type="button"
                                                     onClick={(e) => {
                                                         e.preventDefault();
-                                                        removeTimelineGoal('fiveYear', goal.id || index);
+                                                        onRemoveTimelineGoal('fiveYear', goal.id || index);
                                                     }}
                                                     className="text-red-500 hover:text-red-700 text-xs ml-auto"
                                                 >
@@ -1822,7 +1822,7 @@
                                         className="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                                         onKeyPress={(e) => {
                                             if (e.key === 'Enter' && e.target.value.trim()) {
-                                                addTimelineGoal('fiveYear', e.target.value.trim());
+                                                onAddTimelineGoal('fiveYear', e.target.value.trim());
                                                 e.target.value = '';
                                             }
                                         }}
@@ -1833,7 +1833,7 @@
                                             e.preventDefault();
                                             const input = e.target.previousElementSibling;
                                             if (input.value.trim()) {
-                                                addTimelineGoal('fiveYear', input.value.trim());
+                                                onAddTimelineGoal('fiveYear', input.value.trim());
                                                 input.value = '';
                                             }
                                         }}
@@ -1862,7 +1862,7 @@
                                                     type="button"
                                                     onClick={(e) => {
                                                         e.preventDefault();
-                                                        toggleTimelineGoal('tenYear', goal.id || index);
+                                                        onToggleTimelineGoal('tenYear', goal.id || index);
                                                     }}
                                                     className={`w-4 h-4 rounded border-2 flex items-center justify-center ${
                                                         isCompleted 
@@ -1884,7 +1884,7 @@
                                                     type="button"
                                                     onClick={(e) => {
                                                         e.preventDefault();
-                                                        removeTimelineGoal('tenYear', goal.id || index);
+                                                        onRemoveTimelineGoal('tenYear', goal.id || index);
                                                     }}
                                                     className="text-red-500 hover:text-red-700 text-xs ml-auto"
                                                 >
@@ -1901,7 +1901,7 @@
                                         className="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                                         onKeyPress={(e) => {
                                             if (e.key === 'Enter' && e.target.value.trim()) {
-                                                addTimelineGoal('tenYear', e.target.value.trim());
+                                                onAddTimelineGoal('tenYear', e.target.value.trim());
                                                 e.target.value = '';
                                             }
                                         }}
@@ -1912,7 +1912,7 @@
                                             e.preventDefault();
                                             const input = e.target.previousElementSibling;
                                             if (input.value.trim()) {
-                                                addTimelineGoal('tenYear', input.value.trim());
+                                                onAddTimelineGoal('tenYear', input.value.trim());
                                                 input.value = '';
                                             }
                                         }}
@@ -3275,7 +3275,7 @@
                                                                         type="button"
                                                                         onClick={(e) => {
                                                                             e.preventDefault();
-                                                                            toggleTimelineGoal('monthly', goal.id || index);
+                                                                            onToggleTimelineGoal('monthly', goal.id || index);
                                                                         }}
                                                                         className={`w-4 h-4 rounded border-2 flex items-center justify-center ${
                                                                             isCompleted 
@@ -3297,7 +3297,7 @@
                                                                         type="button"
                                                                         onClick={(e) => {
                                                                             e.preventDefault();
-                                                                            removeTimelineGoal('monthly', goal.id || index);
+                                                                            onRemoveTimelineGoal('monthly', goal.id || index);
                                                                         }}
                                                                         className="text-red-500 hover:text-red-700 text-xs ml-auto"
                                                                     >
@@ -3314,7 +3314,7 @@
                                                             className="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                                                             onKeyPress={(e) => {
                                                                 if (e.key === 'Enter' && e.target.value.trim()) {
-                                                                    addTimelineGoal('monthly', e.target.value.trim());
+                                                                    onAddTimelineGoal('monthly', e.target.value.trim());
                                                                     e.target.value = '';
                                                                 }
                                                             }}
@@ -3325,7 +3325,7 @@
                                                                 e.preventDefault();
                                                                 const input = e.target.previousElementSibling;
                                                                 if (input.value.trim()) {
-                                                                    addTimelineGoal('monthly', input.value.trim());
+                                                                    onAddTimelineGoal('monthly', input.value.trim());
                                                                     input.value = '';
                                                                 }
                                                             }}
@@ -3354,7 +3354,7 @@
                                                                         type="button"
                                                                         onClick={(e) => {
                                                                             e.preventDefault();
-                                                                            toggleTimelineGoal('oneYear', goal.id || index);
+                                                                            onToggleTimelineGoal('oneYear', goal.id || index);
                                                                         }}
                                                                         className={`w-4 h-4 rounded border-2 flex items-center justify-center ${
                                                                             isCompleted 
@@ -3376,7 +3376,7 @@
                                                                         type="button"
                                                                         onClick={(e) => {
                                                                             e.preventDefault();
-                                                                            removeTimelineGoal('oneYear', goal.id || index);
+                                                                            onRemoveTimelineGoal('oneYear', goal.id || index);
                                                                         }}
                                                                         className="text-red-500 hover:text-red-700 text-xs ml-auto"
                                                                     >
@@ -3393,7 +3393,7 @@
                                                             className="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                                                             onKeyPress={(e) => {
                                                                 if (e.key === 'Enter' && e.target.value.trim()) {
-                                                                    addTimelineGoal('oneYear', e.target.value.trim());
+                                                                    onAddTimelineGoal('oneYear', e.target.value.trim());
                                                                     e.target.value = '';
                                                                 }
                                                             }}
@@ -3404,7 +3404,7 @@
                                                                 e.preventDefault();
                                                                 const input = e.target.previousElementSibling;
                                                                 if (input.value.trim()) {
-                                                                    addTimelineGoal('oneYear', input.value.trim());
+                                                                    onAddTimelineGoal('oneYear', input.value.trim());
                                                                     input.value = '';
                                                                 }
                                                             }}
@@ -3433,7 +3433,7 @@
                                                                         type="button"
                                                                         onClick={(e) => {
                                                                             e.preventDefault();
-                                                                            toggleTimelineGoal('fiveYear', goal.id || index);
+                                                                            onToggleTimelineGoal('fiveYear', goal.id || index);
                                                                         }}
                                                                         className={`w-4 h-4 rounded border-2 flex items-center justify-center ${
                                                                             isCompleted 
@@ -3455,7 +3455,7 @@
                                                                         type="button"
                                                                         onClick={(e) => {
                                                                             e.preventDefault();
-                                                                            removeTimelineGoal('fiveYear', goal.id || index);
+                                                                            onRemoveTimelineGoal('fiveYear', goal.id || index);
                                                                         }}
                                                                         className="text-red-500 hover:text-red-700 text-xs ml-auto"
                                                                     >
@@ -3472,7 +3472,7 @@
                                                             className="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                                                             onKeyPress={(e) => {
                                                                 if (e.key === 'Enter' && e.target.value.trim()) {
-                                                                    addTimelineGoal('fiveYear', e.target.value.trim());
+                                                                    onAddTimelineGoal('fiveYear', e.target.value.trim());
                                                                     e.target.value = '';
                                                                 }
                                                             }}
@@ -3483,7 +3483,7 @@
                                                                 e.preventDefault();
                                                                 const input = e.target.previousElementSibling;
                                                                 if (input.value.trim()) {
-                                                                    addTimelineGoal('fiveYear', input.value.trim());
+                                                                    onAddTimelineGoal('fiveYear', input.value.trim());
                                                                     input.value = '';
                                                                 }
                                                             }}
@@ -3512,7 +3512,7 @@
                                                                         type="button"
                                                                         onClick={(e) => {
                                                                             e.preventDefault();
-                                                                            toggleTimelineGoal('tenYear', goal.id || index);
+                                                                            onToggleTimelineGoal('tenYear', goal.id || index);
                                                                         }}
                                                                         className={`w-4 h-4 rounded border-2 flex items-center justify-center ${
                                                                             isCompleted 
@@ -3534,7 +3534,7 @@
                                                                         type="button"
                                                                         onClick={(e) => {
                                                                             e.preventDefault();
-                                                                            removeTimelineGoal('tenYear', goal.id || index);
+                                                                            onRemoveTimelineGoal('tenYear', goal.id || index);
                                                                         }}
                                                                         className="text-red-500 hover:text-red-700 text-xs ml-auto"
                                                                     >
@@ -3551,7 +3551,7 @@
                                                             className="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                                                             onKeyPress={(e) => {
                                                                 if (e.key === 'Enter' && e.target.value.trim()) {
-                                                                    addTimelineGoal('tenYear', e.target.value.trim());
+                                                                    onAddTimelineGoal('tenYear', e.target.value.trim());
                                                                     e.target.value = '';
                                                                 }
                                                             }}
@@ -3562,7 +3562,7 @@
                                                                 e.preventDefault();
                                                                 const input = e.target.previousElementSibling;
                                                                 if (input.value.trim()) {
-                                                                    addTimelineGoal('tenYear', input.value.trim());
+                                                                    onAddTimelineGoal('tenYear', input.value.trim());
                                                                     input.value = '';
                                                                 }
                                                             }}
@@ -3601,7 +3601,7 @@
                                                 onChange={(e) => setNewGoal(prev => ({ ...prev, text: e.target.value }))}
                                                                                                         onKeyPress={(e) => {
                                                             if (e.key === 'Enter' && e.target.value.trim()) {
-                                                                addTimelineGoal(newGoal.timeline, e.target.value.trim());
+                                                                onAddTimelineGoal(newGoal.timeline, e.target.value.trim());
                                                                 setNewGoal(prev => ({ ...prev, text: '' }));
                                                             }
                                                         }}
@@ -3611,7 +3611,7 @@
                                                 onClick={(e) => {
                                                     e.preventDefault();
                                                     if (newGoal.text.trim()) {
-                                                        addTimelineGoal(newGoal.timeline, newGoal.text.trim());
+                                                        onAddTimelineGoal(newGoal.timeline, newGoal.text.trim());
                                                         setNewGoal(prev => ({ ...prev, text: '' }));
                                                     }
                                                 }}

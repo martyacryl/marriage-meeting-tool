@@ -1568,10 +1568,14 @@
                             {/* Monthly Goals */}
                             <div className="bg-white p-4 rounded-lg border border-gray-200">
                                 <h4 className="font-semibold text-gray-800 mb-3 text-center">📅 Monthly</h4>
+                                <div className="text-xs text-gray-500 mb-2 text-center">
+                                    Goals created this month automatically appear here
+                                </div>
                                 <div className="space-y-2 mb-3">
                                     {(timelineGoals?.monthly || []).filter(goal => goal !== null).map((goal, index) => {
                                         const goalText = typeof goal === 'object' ? goal.text : goal;
                                         const isCompleted = typeof goal === 'object' ? goal.completed : false;
+                                        const createdDate = typeof goal === 'object' && goal.createdAt ? new Date(goal.createdAt).toLocaleDateString() : '';
                                         
                                         return (
                                             <div key={goal.id || index} className="flex items-center gap-2">
@@ -1592,6 +1596,11 @@
                                                 <span className={`text-sm flex-1 ${isCompleted ? 'line-through text-gray-500' : 'text-gray-700'}`}>
                                                     {goalText}
                                                 </span>
+                                                {createdDate && (
+                                                    <span className="text-xs text-gray-400">
+                                                        {createdDate}
+                                                    </span>
+                                                )}
                                                 <button
                                                     type="button"
                                                     onClick={(e) => {
@@ -1638,10 +1647,14 @@
                             {/* 1 Year Goals */}
                             <div className="bg-white p-4 rounded-lg border border-gray-200">
                                 <h4 className="font-semibold text-gray-800 mb-3 text-center">1 Year</h4>
+                                <div className="text-xs text-gray-500 mb-2 text-center">
+                                    Goals from this year and last year
+                                </div>
                                 <div className="space-y-2 mb-3">
                                     {(timelineGoals?.oneYear || []).filter(goal => goal !== null).map((goal, index) => {
                                         const goalText = typeof goal === 'object' ? goal.text : goal;
                                         const isCompleted = typeof goal === 'object' ? goal.completed : false;
+                                        const createdDate = typeof goal === 'object' && goal.createdAt ? new Date(goal.createdAt).toLocaleDateString() : '';
                                         
                                         return (
                                             <div key={goal.id || index} className="flex items-center gap-2">
@@ -1662,6 +1675,11 @@
                                                 <span className={`text-sm flex-1 ${isCompleted ? 'line-through text-gray-500' : 'text-gray-700'}`}>
                                                     {goalText}
                                                 </span>
+                                                {createdDate && (
+                                                    <span className="text-xs text-gray-400">
+                                                        {createdDate}
+                                                    </span>
+                                                )}
                                                 <button
                                                     type="button"
                                                     onClick={(e) => {
@@ -1708,10 +1726,14 @@
                             {/* 5 Year Goals */}
                             <div className="bg-white p-4 rounded-lg border border-gray-200">
                                 <h4 className="font-semibold text-gray-800 mb-3 text-center">5 Years</h4>
+                                <div className="text-xs text-gray-500 mb-2 text-center">
+                                    Goals from 2-5 years ago
+                                </div>
                                 <div className="space-y-2 mb-3">
                                     {(timelineGoals?.fiveYear || []).filter(goal => goal !== null).map((goal, index) => {
                                         const goalText = typeof goal === 'object' ? goal.text : goal;
                                         const isCompleted = typeof goal === 'object' ? goal.completed : false;
+                                        const createdDate = typeof goal === 'object' && goal.createdAt ? new Date(goal.createdAt).toLocaleDateString() : '';
                                         
                                         return (
                                             <div key={goal.id || index} className="flex items-center gap-2">
@@ -1732,6 +1754,11 @@
                                                 <span className={`text-sm flex-1 ${isCompleted ? 'line-through text-gray-500' : 'text-gray-700'}`}>
                                                     {goalText}
                                                 </span>
+                                                {createdDate && (
+                                                    <span className="text-xs text-gray-400">
+                                                        {createdDate}
+                                                    </span>
+                                                )}
                                                 <button
                                                     type="button"
                                                     onClick={(e) => {
@@ -1778,10 +1805,14 @@
                             {/* 10 Year Goals */}
                             <div className="bg-white p-4 rounded-lg border border-gray-200">
                                 <h4 className="font-semibold text-gray-800 mb-3 text-center">10 Years</h4>
+                                <div className="text-xs text-gray-500 mb-2 text-center">
+                                    Goals from 6+ years ago
+                                </div>
                                 <div className="space-y-2 mb-3">
                                     {(timelineGoals?.tenYear || []).filter(goal => goal !== null).map((goal, index) => {
                                         const goalText = typeof goal === 'object' ? goal.text : goal;
                                         const isCompleted = typeof goal === 'object' ? goal.completed : false;
+                                        const createdDate = typeof goal === 'object' && goal.createdAt ? new Date(goal.createdAt).toLocaleDateString() : '';
                                         
                                         return (
                                             <div key={goal.id || index} className="flex items-center gap-2">
@@ -1802,6 +1833,11 @@
                                                 <span className={`text-sm flex-1 ${isCompleted ? 'line-through text-gray-500' : 'text-gray-700'}`}>
                                                     {goalText}
                                                 </span>
+                                                {createdDate && (
+                                                    <span className="text-xs text-gray-400">
+                                                        {createdDate}
+                                                    </span>
+                                                )}
                                                 <button
                                                     type="button"
                                                     onClick={(e) => {
@@ -2119,14 +2155,16 @@
             const navigateToUnconfessedSin = () => navigateToSection('unconfessed-sin-section');
             const navigateToWeeklyWinddown = () => navigateToSection('weekly-winddown-section');
 
-            // Timeline goals management functions - COMPLETELY REWRITTEN
+            // Timeline goals management functions - COMPLETELY REWRITTEN with date-based rollover
             const addTimelineGoal = (timeline, text) => {
                 if (text.trim()) {
                     const newGoal = {
                         id: Date.now() + Math.random(),
                         text: text.trim(),
                         completed: false,
-                        timeline: timeline
+                        timeline: timeline,
+                        createdAt: new Date().toISOString(), // Track when goal was created
+                        targetDate: getTargetDateForTimeline(timeline) // Set target date based on timeline
                     };
                     
                     console.log('🎯 Adding goal:', { timeline, text: text.trim(), newGoal });
@@ -2150,6 +2188,69 @@
                         setWeekData(prev => ({ ...prev, goals: updatedGoals }));
                     }
                 }
+            };
+
+            // Helper function to get target date based on timeline
+            const getTargetDateForTimeline = (timeline) => {
+                const now = new Date();
+                switch (timeline) {
+                    case 'monthly':
+                        // End of current month
+                        return new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString();
+                    case 'oneYear':
+                        // 1 year from now
+                        return new Date(now.getFullYear() + 1, now.getMonth(), now.getDate()).toISOString();
+                    case 'fiveYear':
+                        // 5 years from now
+                        return new Date(now.getFullYear() + 5, now.getMonth(), now.getDate()).toISOString();
+                    case 'tenYear':
+                        // 10 years from now
+                        return new Date(now.getFullYear() + 10, now.getMonth(), now.getDate()).toISOString();
+                    default:
+                        return now.toISOString();
+                }
+            };
+
+            // Function to categorize goals based on current week and creation dates
+            const categorizeGoalsByTimeline = (goals, currentWeekDate) => {
+                if (!goals || !Array.isArray(goals)) return { monthly: [], oneYear: [], fiveYear: [], tenYear: [] };
+                
+                const currentDate = new Date(currentWeekDate);
+                const currentMonth = currentDate.getMonth();
+                const currentYear = currentDate.getFullYear();
+                
+                const categorized = { monthly: [], oneYear: [], fiveYear: [], tenYear: [] };
+                
+                goals.forEach(goal => {
+                    if (!goal || !goal.createdAt) return;
+                    
+                    const goalDate = new Date(goal.createdAt);
+                    const goalMonth = goalDate.getMonth();
+                    const goalYear = goalDate.getFullYear();
+                    
+                    // Monthly goals: Same month (regardless of year)
+                    if (goalMonth === currentMonth) {
+                        categorized.monthly.push(goal);
+                    }
+                    // 1 year goals: Within 1 year of creation
+                    else if (goalYear === currentYear || goalYear === currentYear - 1) {
+                        categorized.oneYear.push(goal);
+                    }
+                    // 5 year goals: Within 5 years of creation
+                    else if (goalYear >= currentYear - 5 && goalYear < currentYear) {
+                        categorized.fiveYear.push(goal);
+                    }
+                    // 10 year goals: Within 10 years of creation
+                    else if (goalYear >= currentYear - 10 && goalYear < currentYear - 5) {
+                        categorized.tenYear.push(goal);
+                    }
+                    // If goal is older than 10 years, still show it in 10 year bucket
+                    else {
+                        categorized.tenYear.push(goal);
+                    }
+                });
+                
+                return categorized;
             };
 
             const toggleTimelineGoal = (timeline, goalId) => {
@@ -2184,20 +2285,23 @@
                 }
             };
 
-            // Initialize timeline goals from weekData when it changes
+            // Function to recategorize goals when week changes
+            const recategorizeGoalsForNewWeek = useCallback((goals, weekDate) => {
+                if (!goals || !Array.isArray(goals)) return { monthly: [], oneYear: [], fiveYear: [], tenYear: [] };
+                
+                const categorized = categorizeGoalsByTimeline(goals, weekDate);
+                setTimelineGoals(categorized);
+                console.log('🔄 Goals recategorized for new week:', categorized);
+            }, []);
+
+            // Initialize timelineGoals from weekData
             useEffect(() => {
                 if (weekData?.goals) {
                     // Categorize existing goals by their timeline property
                     const existingGoals = weekData.goals;
-                    const categorized = {
-                        monthly: existingGoals.filter(goal => goal && goal.timeline === 'monthly'),
-                        oneYear: existingGoals.filter(goal => goal && goal.timeline === 'oneYear'),
-                        fiveYear: existingGoals.filter(goal => goal && goal.timeline === 'fiveYear'),
-                        tenYear: existingGoals.filter(goal => goal && goal.timeline === 'tenYear')
-                    };
-                    setTimelineGoals(categorized);
+                    recategorizeGoalsForNewWeek(existingGoals, currentDate);
                 }
-            }, [weekData?.goals]);
+            }, [weekData?.goals, currentDate, recategorizeGoalsForNewWeek]);
 
             // Test Neon connection and initialize users table after authentication is complete
             useEffect(() => {
@@ -3089,10 +3193,14 @@
                                                 {/* Monthly Goals */}
                                                 <div className="bg-white p-4 rounded-lg border border-gray-200">
                                                     <h4 className="font-semibold text-gray-800 mb-3 text-center">📅 Monthly</h4>
+                                                    <div className="text-xs text-gray-500 mb-2 text-center">
+                                                        Goals created this month automatically appear here
+                                                    </div>
                                                     <div className="space-y-2 mb-3">
                                                         {(timelineGoals?.monthly || []).filter(goal => goal !== null).map((goal, index) => {
                                                             const goalText = typeof goal === 'object' ? goal.text : goal;
                                                             const isCompleted = typeof goal === 'object' ? goal.completed : false;
+                                                            const createdDate = typeof goal === 'object' && goal.createdAt ? new Date(goal.createdAt).toLocaleDateString() : '';
                                                             
                                                             return (
                                                                 <div key={goal.id || index} className="flex items-center gap-2">
@@ -3113,6 +3221,11 @@
                                                                     <span className={`text-sm flex-1 ${isCompleted ? 'line-through text-gray-500' : 'text-gray-700'}`}>
                                                                         {goalText}
                                                                     </span>
+                                                                    {createdDate && (
+                                                                        <span className="text-xs text-gray-400">
+                                                                            {createdDate}
+                                                                        </span>
+                                                                    )}
                                                                     <button
                                                                         type="button"
                                                                         onClick={(e) => {
@@ -3159,10 +3272,14 @@
                                                 {/* 1 Year Goals */}
                                                 <div className="bg-white p-4 rounded-lg border border-gray-200">
                                                     <h4 className="font-semibold text-gray-800 mb-3 text-center">1 Year</h4>
+                                                    <div className="text-xs text-gray-500 mb-2 text-center">
+                                                        Goals from this year and last year
+                                                    </div>
                                                     <div className="space-y-2 mb-3">
                                                         {(timelineGoals?.oneYear || []).filter(goal => goal !== null).map((goal, index) => {
                                                             const goalText = typeof goal === 'object' ? goal.text : goal;
                                                             const isCompleted = typeof goal === 'object' ? goal.completed : false;
+                                                            const createdDate = typeof goal === 'object' && goal.createdAt ? new Date(goal.createdAt).toLocaleDateString() : '';
                                                             
                                                             return (
                                                                 <div key={goal.id || index} className="flex items-center gap-2">
@@ -3183,6 +3300,11 @@
                                                                     <span className={`text-sm flex-1 ${isCompleted ? 'line-through text-gray-500' : 'text-gray-700'}`}>
                                                                         {goalText}
                                                                     </span>
+                                                                    {createdDate && (
+                                                                        <span className="text-xs text-gray-400">
+                                                                            {createdDate}
+                                                                        </span>
+                                                                    )}
                                                                     <button
                                                                         type="button"
                                                                         onClick={(e) => {
@@ -3229,10 +3351,14 @@
                                                 {/* 5 Year Goals */}
                                                 <div className="bg-white p-4 rounded-lg border border-gray-200">
                                                     <h4 className="font-semibold text-gray-800 mb-3 text-center">5 Years</h4>
+                                                    <div className="text-xs text-gray-500 mb-2 text-center">
+                                                        Goals from 2-5 years ago
+                                                    </div>
                                                     <div className="space-y-2 mb-3">
                                                         {(timelineGoals?.fiveYear || []).filter(goal => goal !== null).map((goal, index) => {
                                                             const goalText = typeof goal === 'object' ? goal.text : goal;
                                                             const isCompleted = typeof goal === 'object' ? goal.completed : false;
+                                                            const createdDate = typeof goal === 'object' && goal.createdAt ? new Date(goal.createdAt).toLocaleDateString() : '';
                                                             
                                                             return (
                                                                 <div key={goal.id || index} className="flex items-center gap-2">
@@ -3253,6 +3379,11 @@
                                                                     <span className={`text-sm flex-1 ${isCompleted ? 'line-through text-gray-500' : 'text-gray-700'}`}>
                                                                         {goalText}
                                                                     </span>
+                                                                    {createdDate && (
+                                                                        <span className="text-xs text-gray-400">
+                                                                            {createdDate}
+                                                                        </span>
+                                                                    )}
                                                                     <button
                                                                         type="button"
                                                                         onClick={(e) => {
@@ -3299,10 +3430,14 @@
                                                 {/* 10 Year Goals */}
                                                 <div className="bg-white p-4 rounded-lg border border-gray-200">
                                                     <h4 className="font-semibold text-gray-800 mb-3 text-center">10 Years</h4>
+                                                    <div className="text-xs text-gray-500 mb-2 text-center">
+                                                        Goals from 6+ years ago
+                                                    </div>
                                                     <div className="space-y-2 mb-3">
                                                         {(timelineGoals?.tenYear || []).filter(goal => goal !== null).map((goal, index) => {
                                                             const goalText = typeof goal === 'object' ? goal.text : goal;
                                                             const isCompleted = typeof goal === 'object' ? goal.completed : false;
+                                                            const createdDate = typeof goal === 'object' && goal.createdAt ? new Date(goal.createdAt).toLocaleDateString() : '';
                                                             
                                                             return (
                                                                 <div key={goal.id || index} className="flex items-center gap-2">
@@ -3323,6 +3458,11 @@
                                                                     <span className={`text-sm flex-1 ${isCompleted ? 'line-through text-gray-500' : 'text-gray-700'}`}>
                                                                         {goalText}
                                                                     </span>
+                                                                    {createdDate && (
+                                                                        <span className="text-xs text-gray-400">
+                                                                            {createdDate}
+                                                                        </span>
+                                                                    )}
                                                                     <button
                                                                         type="button"
                                                                         onClick={(e) => {

@@ -717,11 +717,7 @@
             const monday = new Date(now);
             monday.setDate(now.getDate() - mondayOffset);
             
-            // Use the week that has good data for now
-            return '2025-08-26';
-            
-            // Original logic (commented out until we fix the data corruption)
-            // return monday.toISOString().split('T')[0];
+            return monday.toISOString().split('T')[0];
         };
 
         // Authentication Components

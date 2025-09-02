@@ -2286,41 +2286,40 @@
                 goals.forEach(goal => {
                     if (!goal) return;
                     
-                    // Handle goals without creation dates by using their timeline property
-                    if (!goal.createdAt) {
-                        // Use the timeline property if available
-                        if (goal.timeline && categorized[goal.timeline]) {
-                            categorized[goal.timeline].push(goal);
-                        } else {
-                            // Default to monthly if no timeline info
-                            categorized.monthly.push(goal);
-                        }
-                        return;
+                    // Get goal creation date - if none exists, use a default date
+                    let goalDate;
+                    if (goal.createdAt) {
+                        goalDate = new Date(goal.createdAt);
+                    } else {
+                        // For goals without creation dates, assume they were created recently
+                        goalDate = new Date(currentDate.getFullYear() - 1, currentDate.getMonth(), currentDate.getDate());
                     }
                     
-                    const goalDate = new Date(goal.createdAt);
                     const goalMonth = goalDate.getMonth();
                     const goalYear = goalDate.getFullYear();
                     
-                    // Monthly goals: Same month (regardless of year) OR goals created this month
-                    if (goalMonth === currentMonth || 
-                        (goalYear === currentYear && goalMonth === currentMonth)) {
-                        categorized.monthly.push(goal);
-                    }
-                    // 1 year goals: Within 1 year of creation OR goals created this year/last year
-                    else if (goalYear === currentYear || goalYear === currentYear - 1) {
+                    // Calculate how many years ago the goal was created
+                    const yearsAgo = currentYear - goalYear;
+                    
+                    // Simple, dynamic categorization based on creation date
+                    if (yearsAgo === 0) {
+                        // This year - monthly or 1 year
+                        if (goalMonth === currentMonth) {
+                            categorized.monthly.push(goal);
+                        } else {
+                            categorized.oneYear.push(goal);
+                        }
+                    } else if (yearsAgo === 1) {
+                        // Last year - 1 year
                         categorized.oneYear.push(goal);
-                    }
-                    // 5 year goals: Within 5 years of creation OR goals created 2-5 years ago
-                    else if (goalYear >= currentYear - 5 && goalYear < currentYear) {
+                    } else if (yearsAgo >= 2 && yearsAgo <= 5) {
+                        // 2-5 years ago - 5 year
                         categorized.fiveYear.push(goal);
-                    }
-                    // 10 year goals: Within 10 years of creation OR goals created 6+ years ago
-                    else if (goalYear >= currentYear - 10 && goalYear < currentYear - 5) {
+                    } else if (yearsAgo >= 6 && yearsAgo <= 10) {
+                        // 6-10 years ago - 10 year
                         categorized.tenYear.push(goal);
-                    }
-                    // If goal is older than 10 years, still show it in 10 year bucket
-                    else {
+                    } else if (yearsAgo > 10) {
+                        // More than 10 years ago - still show in 10 year
                         categorized.tenYear.push(goal);
                     }
                 });

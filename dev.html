@@ -2102,29 +2102,34 @@
                 return saved ? JSON.parse(saved) : false;
             });
             
+            // All other state variables
             const [lastSaved, setLastSaved] = useState(null);
-            
-            // Authentication state
             const [user, setUser] = useState(null);
             const [isAdmin, setIsAdmin] = useState(false);
             const [authLoading, setAuthLoading] = useState(true);
-            const [showAdmin, setShowAdmin] = useState(false); // Added showAdmin state
-            const [users, setUsers] = useState([]); // Added users state
-            const [userLoading, setUserLoading] = useState(false); // Added user loading state
-            const [scrollToSection, setScrollToSection] = useState(null); // Added scroll target state
-
-            // Timeline goals state for both dashboard and weekly planner
+            const [showAdmin, setShowAdmin] = useState(false);
+            const [users, setUsers] = useState([]);
+            const [userLoading, setUserLoading] = useState(false);
+            const [scrollToSection, setScrollToSection] = useState(null);
             const [timelineGoals, setTimelineGoals] = useState({
                 monthly: [],
                 oneYear: [],
                 fiveYear: [],
                 tenYear: []
             });
-
-            // New goal input state for both components
             const [newGoal, setNewGoal] = useState({ timeline: 'monthly', text: '' });
+            
+            // Persist dashboard state changes
+            useEffect(() => {
+                localStorage.setItem('marriageMeetingShowDashboard', JSON.stringify(showDashboard));
+            }, [showDashboard]);
+            
+            // Persist current week changes
+            useEffect(() => {
+                localStorage.setItem('marriageMeetingLastWeek', currentDate.toISOString());
+            }, [currentDate]);
 
-            // Use the new useWeekData hook - only load data when user is authenticated
+            // Use the new useWeekData hook - always call it to maintain hook order
             const currentWeekKey = formatWeekKey(currentDate);
             const currentUserId = user ? getCurrentUserId() : null;
             
@@ -2133,8 +2138,7 @@
             console.log('🔍 App render - currentUserId:', currentUserId);
             console.log('🔍 App render - window.currentAuthenticatedUser:', window.currentAuthenticatedUser);
             
-            // Force hook re-initialization when user changes by using a key
-            const hookKey = currentUserId || 'no-user';
+            // Always call useWeekData to maintain hook order consistency
             const { weekData, setWeekData, isLoading, error, manualSave } = useWeekData(currentWeekKey, currentUserId);
 
             // Scroll to specific section when navigating from dashboard
@@ -2546,16 +2550,8 @@
                 
                 // Load data for the specific week - only if user is authenticated
                 if (user && window.currentAuthenticatedUser && window.currentAuthenticatedUser.id) {
-                    useWeekData(newWeekKey, window.currentAuthenticatedUser.id).then(savedData => {
-                        if (savedData) {
-                            console.log(`✅ Loaded data for week ${newWeekKey}:`, savedData);
-                            setWeekData(prev => ({ ...prev, [newWeekKey]: savedData }));
-                        } else {
-                            console.log(`🆕 No data found for week ${newWeekKey}, will create new data`);
-                        }
-                    }).catch(error => {
-                        console.error(`❌ Error loading data for week ${newWeekKey}:`, error);
-                    });
+                    console.log(`🔄 Week changed to ${newWeekKey}, will load data on next render`);
+                    // The useWeekData hook will automatically handle loading data for the new week
                 } else {
                     console.log(`⚠️ Skipping data load for week ${newWeekKey} - user not authenticated`);
                 }
@@ -2614,16 +2610,6 @@
                     </div>
                 );
             }
-
-            // Persist dashboard state changes
-            useEffect(() => {
-                localStorage.setItem('marriageMeetingShowDashboard', JSON.stringify(showDashboard));
-            }, [showDashboard]);
-            
-            // Persist current week changes
-            useEffect(() => {
-                localStorage.setItem('marriageMeetingLastWeek', currentDate.toISOString());
-            }, [currentDate]);
 
             return (
                 <div className="min-h-screen">
